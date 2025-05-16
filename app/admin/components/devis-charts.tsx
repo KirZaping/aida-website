@@ -1,174 +1,246 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { Bar, Doughnut } from "react-chartjs-2"
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement } from "chart.js"
-import { format, subDays } from "date-fns"
+import { useState } from "react"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  LineChart,
+  Line,
+  CartesianGrid,
+} from "recharts"
+import { format, subDays, parseISO } from "date-fns"
 import { fr } from "date-fns/locale"
 
-// Enregistrer les composants nécessaires pour Chart.js
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement)
-
-interface DevisChartsProps {
-  devis: any[]
+type Devis = {
+  id: string
+  nom: string
+  email: string
+  services: string[]
+  budget: string
+  statut: string
+  date_creation: string
 }
 
-export function DevisCharts({ devis }: DevisChartsProps) {
-  const [chartData, setChartData] = useState<any>(null)
+interface DevisChartsProps {
+  devis: Devis[]
+  chartType?: "status" | "services" | "budget" | "timeline" | "all"
+}
 
-  useEffect(() => {
-    if (devis.length > 0) {
-      prepareChartData()
+export function DevisCharts({ devis, chartType = "all" }: DevisChartsProps) {
+  const [activeTab, setActiveTab] = useState(chartType === "all" ? "status" : chartType)
+
+  // Préparer les données pour le graphique des statuts
+  const statusData = [
+    { name: "Nouveau", value: devis.filter((d) => d.statut === "nouveau").length, color: "#3b82f6" },
+    { name: "En cours", value: devis.filter((d) => d.statut === "en_cours").length, color: "#eab308" },
+    { name: "Terminé", value: devis.filter((d) => d.statut === "termine").length, color: "#22c55e" },
+  ].filter((item) => item.value > 0)
+
+  // Préparer les données pour le graphique des services
+  const servicesMap = new Map<string, number>()
+  devis.forEach((d) => {
+    d.services.forEach((service) => {
+      servicesMap.set(service, (servicesMap.get(service) || 0) + 1)
+    })
+  })
+
+  const servicesData = Array.from(servicesMap.entries())
+    .map(([name, value]) => ({ name, value }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 5)
+
+  // Préparer les données pour le graphique des budgets
+  const budgetMap = new Map<string, number>([
+    ["moins-5k", 0],
+    ["5k-10k", 0],
+    ["10k-20k", 0],
+    ["plus-20k", 0],
+  ])
+
+  devis.forEach((d) => {
+    if (budgetMap.has(d.budget)) {
+      budgetMap.set(d.budget, (budgetMap.get(d.budget) || 0) + 1)
     }
-  }, [devis])
+  })
 
-  const prepareChartData = () => {
-    // Données pour le graphique en anneau (statuts)
-    const statusCounts = {
-      nouveau: devis.filter((d) => d.statut === "nouveau").length,
-      en_cours: devis.filter((d) => d.statut === "en_cours").length,
-      termine: devis.filter((d) => d.statut === "termine").length,
+  const budgetData = [
+    { name: "< 5 000 €", value: budgetMap.get("moins-5k") || 0, color: "#60a5fa" },
+    { name: "5 000 € - 10 000 €", value: budgetMap.get("5k-10k") || 0, color: "#3b82f6" },
+    { name: "10 000 € - 20 000 €", value: budgetMap.get("10k-20k") || 0, color: "#2563eb" },
+    { name: "> 20 000 €", value: budgetMap.get("plus-20k") || 0, color: "#1d4ed8" },
+  ].filter((item) => item.value > 0)
+
+  // Préparer les données pour le graphique chronologique
+  const last30Days = Array.from({ length: 30 }, (_, i) => {
+    const date = subDays(new Date(), i)
+    return {
+      date,
+      dateString: format(date, "yyyy-MM-dd"),
+      name: format(date, "dd MMM", { locale: fr }),
+      count: 0,
     }
+  }).reverse()
 
-    // Données pour le graphique en barres (derniers 7 jours)
-    const last7Days = Array.from({ length: 7 }, (_, i) => {
-      const date = subDays(new Date(), i)
-      return {
-        date,
-        dateString: format(date, "yyyy-MM-dd"),
-        label: format(date, "dd MMM", { locale: fr }),
+  devis.forEach((d) => {
+    try {
+      const devisDate = parseISO(d.date_creation)
+      const dateString = format(devisDate, "yyyy-MM-dd")
+      const dayIndex = last30Days.findIndex((day) => day.dateString === dateString)
+      if (dayIndex !== -1) {
+        last30Days[dayIndex].count++
       }
-    }).reverse()
+    } catch (error) {
+      console.error("Erreur lors du parsing de la date:", error)
+    }
+  })
 
-    const dailyCounts = last7Days.map((day) => {
-      return devis.filter((d) => {
-        const devisDate = new Date(d.date_creation)
-        return format(devisDate, "yyyy-MM-dd") === day.dateString
-      }).length
-    })
+  // Filtrer les jours sans données pour un graphique plus propre
+  const timelineData = last30Days.filter((day) => day.count > 0)
 
-    // Données pour le graphique en barres (services)
-    const serviceMap = new Map()
-    devis.forEach((d) => {
-      d.services.forEach((service: string) => {
-        serviceMap.set(service, (serviceMap.get(service) || 0) + 1)
-      })
-    })
-
-    const serviceLabels = Array.from(serviceMap.keys())
-    const serviceCounts = serviceLabels.map((label) => serviceMap.get(label))
-
-    setChartData({
-      status: {
-        labels: ["Nouveau", "En cours", "Terminé"],
-        datasets: [
-          {
-            data: [statusCounts.nouveau, statusCounts.en_cours, statusCounts.termine],
-            backgroundColor: ["#3b82f6", "#f59e0b", "#10b981"],
-            borderColor: ["#2563eb", "#d97706", "#059669"],
-            borderWidth: 1,
-          },
-        ],
-      },
-      daily: {
-        labels: last7Days.map((d) => d.label),
-        datasets: [
-          {
-            label: "Nombre de devis",
-            data: dailyCounts,
-            backgroundColor: "#3b82f6",
-          },
-        ],
-      },
-      services: {
-        labels: serviceLabels,
-        datasets: [
-          {
-            label: "Nombre de demandes",
-            data: serviceCounts,
-            backgroundColor: "#3b82f6",
-          },
-        ],
-      },
-    })
+  // Si aucun type de graphique n'est spécifié, afficher tous les graphiques
+  if (chartType === "status") {
+    return renderStatusChart()
+  } else if (chartType === "services") {
+    return renderServicesChart()
+  } else if (chartType === "budget") {
+    return renderBudgetChart()
+  } else if (chartType === "timeline") {
+    return renderTimelineChart()
   }
 
-  if (!chartData) {
-    return <div className="flex h-64 items-center justify-center">Chargement des graphiques...</div>
-  }
-
+  // Afficher tous les graphiques avec des onglets
   return (
-    <div className="space-y-8">
-      <div className="grid gap-8 md:grid-cols-2">
-        <div>
-          <h3 className="mb-4 text-lg font-medium">Répartition par statut</h3>
-          <div className="h-64">
-            <Doughnut
-              data={chartData.status}
-              options={{
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                  legend: {
-                    position: "bottom",
-                  },
-                },
-              }}
-            />
-          </div>
-        </div>
-        <div>
-          <h3 className="mb-4 text-lg font-medium">Devis des 7 derniers jours</h3>
-          <div className="h-64">
-            <Bar
-              data={chartData.daily}
-              options={{
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                  legend: {
-                    display: false,
-                  },
-                },
-                scales: {
-                  y: {
-                    beginAtZero: true,
-                    ticks: {
-                      precision: 0,
-                    },
-                  },
-                },
-              }}
-            />
-          </div>
-        </div>
-      </div>
-      <div>
-        <h3 className="mb-4 text-lg font-medium">Services demandés</h3>
-        <div className="h-64">
-          <Bar
-            data={chartData.services}
-            options={{
-              responsive: true,
-              maintainAspectRatio: false,
-              indexAxis: "y" as const,
-              plugins: {
-                legend: {
-                  display: false,
-                },
-              },
-              scales: {
-                x: {
-                  beginAtZero: true,
-                  ticks: {
-                    precision: 0,
-                  },
-                },
-              },
-            }}
-          />
-        </div>
-      </div>
-    </div>
+    <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <TabsList className="mb-4">
+        <TabsTrigger value="status">Statuts</TabsTrigger>
+        <TabsTrigger value="services">Services</TabsTrigger>
+        <TabsTrigger value="budget">Budgets</TabsTrigger>
+        <TabsTrigger value="timeline">Chronologie</TabsTrigger>
+      </TabsList>
+      <TabsContent value="status">{renderStatusChart()}</TabsContent>
+      <TabsContent value="services">{renderServicesChart()}</TabsContent>
+      <TabsContent value="budget">{renderBudgetChart()}</TabsContent>
+      <TabsContent value="timeline">{renderTimelineChart()}</TabsContent>
+    </Tabs>
   )
+
+  function renderStatusChart() {
+    return (
+      <div className="h-80">
+        {statusData.length > 0 ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={statusData}
+                cx="50%"
+                cy="50%"
+                labelLine={true}
+                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                outerRadius={80}
+                fill="#8884d8"
+                dataKey="value"
+              >
+                {statusData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="flex h-full items-center justify-center">
+            <p className="text-muted-foreground">Aucune donnée disponible</p>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  function renderServicesChart() {
+    return (
+      <div className="h-80">
+        {servicesData.length > 0 ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={servicesData}>
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Bar dataKey="value" name="Nombre de demandes" fill="#3b82f6" />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="flex h-full items-center justify-center">
+            <p className="text-muted-foreground">Aucune donnée disponible</p>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  function renderBudgetChart() {
+    return (
+      <div className="h-80">
+        {budgetData.length > 0 ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={budgetData}
+                cx="50%"
+                cy="50%"
+                labelLine={true}
+                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                outerRadius={80}
+                fill="#8884d8"
+                dataKey="value"
+              >
+                {budgetData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="flex h-full items-center justify-center">
+            <p className="text-muted-foreground">Aucune donnée disponible</p>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  function renderTimelineChart() {
+    return (
+      <div className="h-80">
+        {timelineData.length > 0 ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={timelineData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Legend />
+              <Line type="monotone" dataKey="count" name="Nombre de devis" stroke="#3b82f6" activeDot={{ r: 8 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="flex h-full items-center justify-center">
+            <p className="text-muted-foreground">Aucune donnée disponible</p>
+          </div>
+        )}
+      </div>
+    )
+  }
 }

@@ -1,12 +1,12 @@
-import { BarChart3, Clock, FileText, ThumbsUp } from "lucide-react"
+import { BarChart3, Clock, FileText, CheckCircle } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 interface StatsCardsProps {
   stats: {
     total: number
-    nouveaux: number
-    enCours: number
-    termines: number
+    nouveau: number
+    en_cours: number
+    termine: number
   }
 }
 
@@ -26,30 +26,30 @@ export function StatsCards({ stats }: StatsCardsProps) {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Nouveaux devis</CardTitle>
-          <Clock className="h-4 w-4 text-muted-foreground" />
+          <Clock className="h-4 w-4 text-blue-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{stats.nouveaux}</div>
+          <div className="text-2xl font-bold">{stats.nouveau}</div>
           <p className="text-xs text-muted-foreground">Devis en attente de traitement</p>
         </CardContent>
       </Card>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">En cours</CardTitle>
-          <BarChart3 className="h-4 w-4 text-muted-foreground" />
+          <BarChart3 className="h-4 w-4 text-yellow-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{stats.enCours}</div>
+          <div className="text-2xl font-bold">{stats.en_cours}</div>
           <p className="text-xs text-muted-foreground">Devis en cours de traitement</p>
         </CardContent>
       </Card>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Terminés</CardTitle>
-          <ThumbsUp className="h-4 w-4 text-muted-foreground" />
+          <CheckCircle className="h-4 w-4 text-green-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{stats.termines}</div>
+          <div className="text-2xl font-bold">{stats.termine}</div>
           <p className="text-xs text-muted-foreground">Devis traités et terminés</p>
         </CardContent>
       </Card>

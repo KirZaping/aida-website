@@ -96,6 +96,117 @@ export interface Database {
           actif?: boolean
         }
       }
+      documents: {
+        Row: {
+          id: string
+          client_id: string
+          titre: string
+          description: string | null
+          type: string
+          statut: string
+          montant: number | null
+          fichier_path: string | null
+          fichier_nom: string | null
+          fichier_type: string | null
+          fichier_taille: number | null
+          date_creation: string
+          date_modification: string
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          titre: string
+          description?: string | null
+          type: string
+          statut: string
+          montant?: number | null
+          fichier_path?: string | null
+          fichier_nom?: string | null
+          fichier_type?: string | null
+          fichier_taille?: number | null
+          date_creation?: string
+          date_modification?: string
+        }
+        Update: {
+          id?: string
+          client_id?: string
+          titre?: string
+          description?: string | null
+          type?: string
+          statut?: string
+          montant?: number | null
+          fichier_path?: string | null
+          fichier_nom?: string | null
+          fichier_type?: string | null
+          fichier_taille?: number | null
+          date_creation?: string
+          date_modification?: string
+        }
+      }
+      document_partages: {
+        Row: {
+          id: string
+          document_id: string
+          token: string
+          email_destinataire: string | null
+          date_creation: string
+          date_expiration: string
+          est_consulte: boolean
+          date_consultation: string | null
+        }
+        Insert: {
+          id?: string
+          document_id: string
+          token: string
+          email_destinataire?: string | null
+          date_creation?: string
+          date_expiration: string
+          est_consulte?: boolean
+          date_consultation?: string | null
+        }
+        Update: {
+          id?: string
+          document_id?: string
+          token?: string
+          email_destinataire?: string | null
+          date_creation?: string
+          date_expiration?: string
+          est_consulte?: boolean
+          date_consultation?: string | null
+        }
+      }
+      document_notifications: {
+        Row: {
+          id: string
+          document_id: string
+          client_id: string
+          type: string
+          message: string
+          est_lu: boolean
+          date_creation: string
+          date_lecture: string | null
+        }
+        Insert: {
+          id?: string
+          document_id: string
+          client_id: string
+          type: string
+          message: string
+          est_lu?: boolean
+          date_creation?: string
+          date_lecture?: string | null
+        }
+        Update: {
+          id?: string
+          document_id?: string
+          client_id?: string
+          type?: string
+          message?: string
+          est_lu?: boolean
+          date_creation?: string
+          date_lecture?: string | null
+        }
+      }
     }
   }
 }

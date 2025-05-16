@@ -3,33 +3,6 @@
 import { supabaseAdmin } from "@/lib/supabase"
 import { revalidatePath } from "next/cache"
 
-// Fonction pour vérifier si la table existe
-async function checkTableExists(tableName: string) {
-  try {
-    // Utiliser une requête simple pour vérifier si la table existe
-    const { error } = await supabaseAdmin.from(tableName).select("id").limit(1)
-
-    if (error) {
-      // Si l'erreur est "relation does not exist", la table n'existe pas
-      if (error.message && error.message.includes("does not exist")) {
-        console.log(`La table ${tableName} n'existe pas`)
-        return false
-      }
-
-      // Autre erreur
-      console.error(`Erreur lors de la vérification de la table ${tableName}:`, error)
-      return false
-    }
-
-    // Si nous arrivons ici, la table existe
-    console.log(`La table ${tableName} existe`)
-    return true
-  } catch (err) {
-    console.error(`Exception lors de la vérification de la table ${tableName}:`, err)
-    return false
-  }
-}
-
 export async function soumettreDevis(formData: FormData) {
   try {
     // Récupérer les données du formulaire
@@ -76,79 +49,17 @@ export async function soumettreDevis(formData: FormData) {
       date_modification: new Date().toISOString(),
     }
 
-    // Log détaillé des données à insérer
-    console.log("=== DONNÉES À INSÉRER DANS SUPABASE ===")
-    console.log(JSON.stringify(devisData, null, 2))
-    console.log("======================================")
-
-    // Activer le mode développement si l'environnement est de développement
-    const isDevelopment = process.env.NODE_ENV === "development" || !process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (isDevelopment) {
-      console.log("Mode développement activé - simulation de succès sans insertion en base de données")
-
-      revalidatePath("/devis")
-      return {
-        success: true,
-        message: "Votre demande a été enregistrée",
-        devMode: true,
-        devMessage:
-          "Note: En environnement de développement, votre demande est stockée localement et non en base de données.",
-        data: devisData, // Renvoyer les données pour stockage local
-      }
-    }
-
-    // Vérifier si la table existe
-    const tableExists = await checkTableExists("devis")
-    if (!tableExists) {
-      console.log("La table 'devis' n'existe pas - mode développement activé")
-
-      revalidatePath("/devis")
-      return {
-        success: true,
-        message: "Votre demande a été enregistrée",
-        devMode: true,
-        devMessage:
-          "Note: La table 'devis' n'existe pas dans la base de données. Votre demande est stockée localement.",
-        data: devisData,
-      }
-    }
+    console.log("Données à insérer:", JSON.stringify(devisData, null, 2))
 
     try {
-      // Tenter d'insérer les données avec plus de détails sur l'erreur
-      console.log("Tentative d'insertion dans Supabase...")
+      // Insérer les données dans la table devis
       const { data, error } = await supabaseAdmin.from("devis").insert([devisData]).select()
 
-      // Journalisation détaillée
-      if (data) {
-        console.log("=== DONNÉES INSÉRÉES AVEC SUCCÈS ===")
-        console.log(JSON.stringify(data, null, 2))
-        console.log("===================================")
-      }
-
-      // Si une erreur se produit
       if (error) {
-        console.error("=== ERREUR SUPABASE LORS DE L'INSERTION ===")
+        console.error("Erreur Supabase lors de l'insertion:", error)
         console.error("Code d'erreur:", error.code)
         console.error("Message d'erreur:", error.message)
         console.error("Détails:", error.details)
-        console.error("===========================================")
-
-        // Vérifier si c'est une erreur de table inexistante
-        if (error.message && (error.message.includes("does not exist") || error.code === "42P01")) {
-          console.log("La table 'devis' n'existe pas - mode développement activé")
-
-          // Simuler un succès en mode développement
-          revalidatePath("/devis")
-          return {
-            success: true,
-            message: "Votre demande a été enregistrée",
-            devMode: true,
-            devMessage:
-              "Note: La table 'devis' n'existe pas dans la base de données. Votre demande est stockée localement.",
-            data: devisData, // Renvoyer les données pour stockage local
-          }
-        }
 
         return {
           success: false,
@@ -164,32 +75,7 @@ export async function soumettreDevis(formData: FormData) {
         message: "Votre demande a été envoyée avec succès",
       }
     } catch (insertError: any) {
-      console.error("=== EXCEPTION LORS DE L'INSERTION ===")
-      console.error("Type d'erreur:", typeof insertError)
-
-      // Journalisation détaillée de l'erreur
-      if (insertError instanceof Error) {
-        console.error("Nom de l'erreur:", insertError.name)
-        console.error("Message d'erreur:", insertError.message)
-        console.error("Stack trace:", insertError.stack)
-      } else {
-        console.error("Erreur non standard:", insertError)
-      }
-      console.error("====================================")
-
-      // Vérifier si c'est une erreur de table inexistante
-      if (insertError.message && insertError.message.includes("does not exist")) {
-        console.log("Table inexistante détectée, simulation de succès en mode développement")
-        revalidatePath("/devis")
-        return {
-          success: true,
-          message: "Votre demande a été enregistrée",
-          devMode: true,
-          devMessage:
-            "Note: La table 'devis' n'existe pas dans la base de données. Votre demande est stockée localement.",
-          data: devisData, // Renvoyer les données pour stockage local
-        }
-      }
+      console.error("Exception lors de l'insertion:", insertError)
 
       return {
         success: false,
@@ -201,26 +87,6 @@ export async function soumettreDevis(formData: FormData) {
     const errorMessage = error instanceof Error ? error.message : "Erreur inconnue"
     console.error("Erreur lors de la soumission du devis:", error)
     console.error("Message d'erreur:", errorMessage)
-
-    // Journalisation détaillée
-    if (error instanceof Error) {
-      console.error("Nom de l'erreur:", error.name)
-      console.error("Stack trace:", error.stack)
-    }
-
-    // Si c'est une erreur de table inexistante, activer le mode développement
-    if (errorMessage.includes("does not exist")) {
-      console.log("Table inexistante détectée, simulation de succès en mode développement")
-      revalidatePath("/devis")
-      return {
-        success: true,
-        message: "Votre demande a été enregistrée",
-        devMode: true,
-        devMessage:
-          "Note: La table 'devis' n'existe pas dans la base de données. Votre demande est stockée localement.",
-        data: formData, // Renvoyer les données pour stockage local
-      }
-    }
 
     return {
       success: false,

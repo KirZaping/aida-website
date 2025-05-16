@@ -29,26 +29,40 @@ import { toast } from "@/components/ui/use-toast"
 
 interface DevisTableProps {
   devis: any[]
-  loading: boolean
-  onRefresh: () => void
+  demoMode?: boolean
+  onRefresh?: () => void
+  loading?: boolean
 }
 
-export function DevisTable({ devis, loading, onRefresh }: DevisTableProps) {
+export function DevisTable({ devis, demoMode = false, onRefresh, loading = false }: DevisTableProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedDevis, setSelectedDevis] = useState<any | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [updatingStatus, setUpdatingStatus] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
 
   const filteredDevis = devis.filter(
     (d) =>
-      d.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      d.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      d.nom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      d.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (d.entreprise && d.entreprise.toLowerCase().includes(searchTerm.toLowerCase())),
   )
 
   const handleStatusChange = async (id: string, newStatus: string) => {
     try {
       setUpdatingStatus(true)
+
+      if (demoMode) {
+        // En mode démo, simuler un changement de statut
+        setTimeout(() => {
+          toast({
+            title: "Mode démo",
+            description: "En mode démo, les changements ne sont pas persistants.",
+          })
+          if (onRefresh) onRefresh()
+        }, 1000)
+        return
+      }
 
       // Mise à jour du statut dans Supabase
       const { error } = await supabaseAdmin
@@ -71,7 +85,7 @@ export function DevisTable({ devis, loading, onRefresh }: DevisTableProps) {
           title: "Succès",
           description: "Le statut du devis a été mis à jour",
         })
-        onRefresh()
+        if (onRefresh) onRefresh()
       }
     } catch (err) {
       console.error("Exception lors de la mise à jour du statut:", err)
@@ -82,6 +96,14 @@ export function DevisTable({ devis, loading, onRefresh }: DevisTableProps) {
       })
     } finally {
       setUpdatingStatus(false)
+    }
+  }
+
+  const handleRefresh = async () => {
+    if (onRefresh) {
+      setIsRefreshing(true)
+      await onRefresh()
+      setIsRefreshing(false)
     }
   }
 
@@ -114,6 +136,36 @@ export function DevisTable({ devis, loading, onRefresh }: DevisTableProps) {
     }
   }
 
+  const formatBudget = (budget: string) => {
+    switch (budget) {
+      case "moins-5k":
+        return "< 5 000 €"
+      case "5k-10k":
+        return "5 000 € - 10 000 €"
+      case "10k-20k":
+        return "10 000 € - 20 000 €"
+      case "plus-20k":
+        return "> 20 000 €"
+      default:
+        return budget
+    }
+  }
+
+  const formatDelai = (delai: string) => {
+    switch (delai) {
+      case "urgent":
+        return "Urgent (< 1 mois)"
+      case "1-3-mois":
+        return "1 à 3 mois"
+      case "3-6-mois":
+        return "3 à 6 mois"
+      case "plus-6-mois":
+        return "> 6 mois"
+      default:
+        return delai || "Non spécifié"
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -127,11 +179,23 @@ export function DevisTable({ devis, loading, onRefresh }: DevisTableProps) {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <Button variant="outline" size="sm" onClick={onRefresh} disabled={loading}>
-          {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-          Actualiser
-        </Button>
+        {onRefresh && (
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading || isRefreshing}>
+            {loading || isRefreshing ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="mr-2 h-4 w-4" />
+            )}
+            Actualiser
+          </Button>
+        )}
       </div>
+
+      {demoMode && (
+        <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          Mode démonstration : Les données affichées sont des exemples et les modifications ne seront pas enregistrées.
+        </div>
+      )}
 
       <div className="rounded-md border">
         <Table>
@@ -159,7 +223,7 @@ export function DevisTable({ devis, loading, onRefresh }: DevisTableProps) {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredDevis.slice(0, 10).map((d) => (
+              filteredDevis.map((d) => (
                 <TableRow key={d.id}>
                   <TableCell>
                     <div className="font-medium">{d.nom}</div>
@@ -174,7 +238,7 @@ export function DevisTable({ devis, loading, onRefresh }: DevisTableProps) {
                       ))}
                     </div>
                   </TableCell>
-                  <TableCell>{d.budget}</TableCell>
+                  <TableCell>{formatBudget(d.budget)}</TableCell>
                   <TableCell>{formatDate(d.date_creation)}</TableCell>
                   <TableCell>{getStatusBadge(d.statut)}</TableCell>
                   <TableCell>
@@ -242,9 +306,9 @@ export function DevisTable({ devis, loading, onRefresh }: DevisTableProps) {
                   <div className="font-medium">Services</div>
                   <div>{selectedDevis.services.join(", ")}</div>
                   <div className="font-medium">Budget</div>
-                  <div>{selectedDevis.budget}</div>
+                  <div>{formatBudget(selectedDevis.budget)}</div>
                   <div className="font-medium">Délai</div>
-                  <div>{selectedDevis.delai || "Non renseigné"}</div>
+                  <div>{formatDelai(selectedDevis.delai)}</div>
                   <div className="font-medium">Statut</div>
                   <div>{getStatusBadge(selectedDevis.statut)}</div>
                 </div>

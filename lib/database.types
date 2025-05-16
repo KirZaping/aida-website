@@ -96,6 +96,112 @@ export interface Database {
           actif?: boolean
         }
       }
+      admin_users: {
+        Row: {
+          id: string
+          username: string
+          password: string
+          email: string | null
+          role: string | null
+          last_login: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          username: string
+          password: string
+          email?: string | null
+          role?: string | null
+          last_login?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          username?: string
+          password?: string
+          email?: string | null
+          role?: string | null
+          last_login?: string | null
+          created_at?: string
+        }
+      }
+      clients: {
+        Row: {
+          id: string
+          nom: string
+          email: string
+          telephone: string | null
+          entreprise: string | null
+          adresse: string | null
+          ville: string | null
+          code_postal: string | null
+          pays: string
+          type: string | null
+          nb_projets: number | null
+          notes: string | null
+          date_creation: string
+          date_modification: string
+          mot_de_passe: string
+          raison_sociale: string
+          contact_nom: string
+          contact_email: string
+          contact_telephone: string
+        }
+        Insert: {
+          id?: string
+          nom: string
+          email: string
+          telephone?: string | null
+          entreprise?: string | null
+          adresse?: string | null
+          ville?: string | null
+          code_postal?: string | null
+          pays: string
+          type?: string | null
+          nb_projets?: number | null
+          notes?: string | null
+          date_creation?: string
+          date_modification?: string
+          mot_de_passe: string
+          raison_sociale: string
+          contact_nom: string
+          contact_email: string
+          contact_telephone: string
+        }
+        Update: {
+          id?: string
+          nom?: string
+          email?: string
+          telephone?: string | null
+          entreprise?: string | null
+          adresse?: string | null
+          ville?: string | null
+          code_postal?: string | null
+          pays?: string
+          type?: string | null
+          nb_projets?: number | null
+          notes?: string | null
+          date_creation?: string
+          date_modification?: string
+          mot_de_passe?: string
+          raison_sociale?: string
+          contact_nom?: string
+          contact_email?: string
+          contact_telephone?: string
+        }
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
     }
   }
 }

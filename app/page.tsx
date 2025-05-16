@@ -182,11 +182,24 @@ export default function Home() {
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.5 }}
-            onMouseEnter={enterButton}
-            onMouseLeave={leaveButton}
+            className="flex gap-2"
           >
+            <Link href="/espace-client">
+              <Button
+                variant="outline"
+                className="hidden md:inline-flex border-blue-500 text-blue-600 hover:bg-blue-50"
+                onMouseEnter={enterButton}
+                onMouseLeave={leaveButton}
+              >
+                Espace client
+              </Button>
+            </Link>
             <Link href="/devis">
-              <Button className="hidden md:inline-flex btn-gradient text-white border-0 shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transition-all">
+              <Button
+                className="hidden md:inline-flex btn-gradient text-white border-0 shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 transition-all"
+                onMouseEnter={enterButton}
+                onMouseLeave={leaveButton}
+              >
                 Demander un devis
               </Button>
             </Link>
