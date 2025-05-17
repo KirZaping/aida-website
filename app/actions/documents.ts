@@ -22,7 +22,6 @@ export async function getClientDocuments(clientId?: string) {
 
     // Vérifier si l'ID client est un UUID valide
     if (!isValidUUID(clientId)) {
-      console.error("ID client invalide:", clientId)
       return { documents: [], error: "ID client invalide" }
     }
 
@@ -30,7 +29,6 @@ export async function getClientDocuments(clientId?: string) {
     const { error: tableError } = await supabaseAdmin.from("documents").select("count").limit(1)
 
     if (tableError) {
-      console.error("Erreur lors de la vérification de la table documents:", tableError)
       return { documents: [], error: "La table documents n'existe pas. Veuillez exécuter le script d'initialisation." }
     }
 
@@ -42,13 +40,11 @@ export async function getClientDocuments(clientId?: string) {
       .order("date_creation", { ascending: false })
 
     if (error) {
-      console.error("Erreur lors de la récupération des documents:", error)
       return { documents: [], error: "Impossible de récupérer les documents" }
     }
 
     return { documents: data, error: null }
   } catch (error) {
-    console.error("Erreur lors de la récupération des documents:", error)
     return { documents: [], error: "Une erreur est survenue" }
   }
 }
@@ -65,7 +61,6 @@ export async function getDocument(documentId: string) {
 
     // Vérifier si l'ID client est un UUID valide
     if (!isValidUUID(session.id)) {
-      console.error("ID client invalide:", session.id)
       return { document: null, error: "ID client invalide" }
     }
 
@@ -73,7 +68,6 @@ export async function getDocument(documentId: string) {
     const { error: tableError } = await supabaseAdmin.from("documents").select("count").limit(1)
 
     if (tableError) {
-      console.error("Erreur lors de la vérification de la table documents:", tableError)
       return { document: null, error: "La table documents n'existe pas. Veuillez exécuter le script d'initialisation." }
     }
 
@@ -86,14 +80,27 @@ export async function getDocument(documentId: string) {
       .single()
 
     if (error) {
-      console.error("Erreur lors de la récupération du document:", error)
       return { document: null, error: "Document non trouvé ou accès non autorisé" }
     }
 
     return { document: data, error: null }
   } catch (error) {
-    console.error("Erreur lors de la récupération du document:", error)
     return { document: null, error: "Une erreur est survenue" }
+  }
+}
+
+// Fonction pour obtenir l'URL signée d'un document
+export async function getDocumentUrl(documentPath: string) {
+  try {
+    const { data, error } = await supabaseAdmin.storage.from("client-documents").createSignedUrl(documentPath, 60) // URL valide pendant 60 secondes
+
+    if (error) {
+      return null
+    }
+
+    return data.signedUrl
+  } catch (err) {
+    return null
   }
 }
 
@@ -109,7 +116,6 @@ export async function createDocumentShareLink(documentId: string, expirationDays
 
     // Vérifier si l'ID client est un UUID valide
     if (!isValidUUID(session.id)) {
-      console.error("ID client invalide:", session.id)
       return { url: null, error: "ID client invalide" }
     }
 
@@ -117,20 +123,18 @@ export async function createDocumentShareLink(documentId: string, expirationDays
     const { error: tableError } = await supabaseAdmin.from("documents").select("count").limit(1)
 
     if (tableError) {
-      console.error("Erreur lors de la vérification de la table documents:", tableError)
       return { url: null, error: "La table documents n'existe pas. Veuillez exécuter le script d'initialisation." }
     }
 
     // Vérifier que le document appartient au client
     const { data: document, error: docError } = await supabaseAdmin
       .from("documents")
-      .select("id")
+      .select("id, fichier_path")
       .eq("id", documentId)
       .eq("client_id", session.id)
       .single()
 
     if (docError || !document) {
-      console.error("Erreur lors de la vérification du document:", docError)
       return { url: null, error: "Document non trouvé ou accès non autorisé" }
     }
 
@@ -138,7 +142,6 @@ export async function createDocumentShareLink(documentId: string, expirationDays
     const { error: partageTableError } = await supabaseAdmin.from("document_partages").select("count").limit(1)
 
     if (partageTableError) {
-      console.error("Erreur lors de la vérification de la table document_partages:", partageTableError)
       return {
         url: null,
         error: "La table document_partages n'existe pas. Veuillez exécuter le script d'initialisation.",
@@ -164,7 +167,6 @@ export async function createDocumentShareLink(documentId: string, expirationDays
       .single()
 
     if (error) {
-      console.error("Erreur lors de la création du lien de partage:", error)
       return { url: null, error: "Impossible de créer le lien de partage" }
     }
 
@@ -173,7 +175,6 @@ export async function createDocumentShareLink(documentId: string, expirationDays
 
     return { url: shareUrl, token: data.token, error: null }
   } catch (error) {
-    console.error("Erreur lors de la création du lien de partage:", error)
     return { url: null, error: "Une erreur est survenue" }
   }
 }
@@ -190,7 +191,6 @@ export async function markDocumentAsRead(documentId: string) {
 
     // Vérifier si l'ID client est un UUID valide
     if (!isValidUUID(session.id)) {
-      console.error("ID client invalide:", session.id)
       return { success: false, error: "ID client invalide" }
     }
 
@@ -198,7 +198,6 @@ export async function markDocumentAsRead(documentId: string) {
     const { error: tableError } = await supabaseAdmin.from("document_notifications").select("count").limit(1)
 
     if (tableError) {
-      console.error("Erreur lors de la vérification de la table document_notifications:", tableError)
       return {
         success: false,
         error: "La table document_notifications n'existe pas. Veuillez exécuter le script d'initialisation.",
@@ -217,13 +216,11 @@ export async function markDocumentAsRead(documentId: string) {
       .eq("est_lu", false)
 
     if (error) {
-      console.error("Erreur lors du marquage des notifications:", error)
       return { success: false, error: "Impossible de marquer les notifications comme lues" }
     }
 
     return { success: true, error: null }
   } catch (error) {
-    console.error("Erreur lors du marquage des notifications:", error)
     return { success: false, error: "Une erreur est survenue" }
   }
 }
@@ -240,7 +237,6 @@ export async function getUnreadNotifications() {
 
     // Vérifier si l'ID client est un UUID valide
     if (!isValidUUID(session.id)) {
-      console.error("ID client invalide:", session.id)
       return { notifications: [], error: "ID client invalide" }
     }
 
@@ -248,7 +244,6 @@ export async function getUnreadNotifications() {
     const { error: tableError } = await supabaseAdmin.from("document_notifications").select("count").limit(1)
 
     if (tableError) {
-      console.error("Erreur lors de la vérification de la table document_notifications:", tableError)
       return {
         notifications: [],
         error: "La table document_notifications n'existe pas. Veuillez exécuter le script d'initialisation.",
@@ -264,13 +259,11 @@ export async function getUnreadNotifications() {
       .order("date_creation", { ascending: false })
 
     if (error) {
-      console.error("Erreur lors de la récupération des notifications:", error)
       return { notifications: [], error: "Impossible de récupérer les notifications" }
     }
 
     return { notifications: data, error: null }
   } catch (error) {
-    console.error("Erreur lors de la récupération des notifications:", error)
     return { notifications: [], error: "Une erreur est survenue" }
   }
 }

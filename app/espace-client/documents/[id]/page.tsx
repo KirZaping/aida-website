@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { getClientSession } from "@/app/actions/client-auth"
-import { getDocument, markDocumentAsRead } from "@/app/actions/documents"
+import { getDocument, markDocumentAsRead, getDocumentUrl } from "@/app/actions/documents"
 
 export default async function DocumentPage({ params }: { params: { id: string } }) {
   const cookieStore = cookies()
@@ -26,6 +26,9 @@ export default async function DocumentPage({ params }: { params: { id: string } 
   if (error || !document) {
     notFound()
   }
+
+  // Obtenir l'URL signée du document pour l'affichage
+  const documentUrl = document.fichier_path ? await getDocumentUrl(document.fichier_path) : null
 
   // Fonction pour obtenir la couleur du badge en fonction du statut
   const getStatusColor = (status: string) => {
@@ -103,9 +106,9 @@ export default async function DocumentPage({ params }: { params: { id: string } 
             <CardDescription>Consultez le contenu du document</CardDescription>
           </CardHeader>
           <CardContent>
-            {document.fichier_path ? (
+            {documentUrl ? (
               <div className="aspect-[3/4] w-full bg-muted rounded-md overflow-hidden">
-                <iframe src={document.fichier_path} className="w-full h-full" title={document.titre} />
+                <iframe src={documentUrl} className="w-full h-full" title={document.titre} />
               </div>
             ) : (
               <div className="aspect-[3/4] w-full bg-muted rounded-md flex items-center justify-center">
@@ -114,8 +117,8 @@ export default async function DocumentPage({ params }: { params: { id: string } 
             )}
           </CardContent>
           <CardFooter className="flex justify-between">
-            <Button variant="outline" asChild>
-              <a href={document.fichier_path} download={document.fichier_nom}>
+            <Button variant="outline" asChild disabled={!documentUrl}>
+              <a href={documentUrl || "#"} download={document.fichier_nom}>
                 <Download className="mr-2 h-4 w-4" />
                 Télécharger
               </a>

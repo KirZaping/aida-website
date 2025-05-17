@@ -14,7 +14,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -22,8 +21,8 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Loader2, Search, FileUp, Download, Eye, Trash2, Info } from "lucide-react"
-import { supabaseAdmin } from "@/lib/supabase"
+import { Loader2, Search, FileUp, Download, Eye, Trash2, FolderPlus } from "lucide-react"
+import { supabaseAdmin, ensureClientFolder } from "@/lib/supabase"
 import { formatDate, formatFileSize } from "@/lib/utils"
 
 export default function DocumentsPage() {
@@ -40,7 +39,6 @@ export default function DocumentsPage() {
   const [uploadSuccess, setUploadSuccess] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState("tous")
-  const [debug, setDebug] = useState<any>(null)
 
   // Formulaire d'upload
   const [formData, setFormData] = useState({
@@ -66,13 +64,11 @@ export default function DocumentsPage() {
     try {
       setLoading(true)
       setError(null)
-      setDebug(null)
 
       // Vérifier si la table documents existe
       const { error: tableError } = await supabaseAdmin.from("documents").select("count").limit(1)
 
       if (tableError) {
-        console.error("Erreur lors de la vérification de la table documents:", tableError)
         setTableExists(false)
         setError("La table 'documents' n'existe pas dans la base de données.")
         setDocuments([])
@@ -88,17 +84,12 @@ export default function DocumentsPage() {
         .order("date_creation", { ascending: false })
 
       if (error) {
-        console.error("Erreur lors de la récupération des documents:", error)
         setError(`Erreur: ${error.message}`)
         setDocuments([])
         setFilteredDocuments([])
         setLoading(false)
         return
       }
-
-      // Afficher le nombre de documents récupérés pour le débogage
-      console.log(`${data?.length || 0} documents récupérés`)
-      setDebug({ documentsCount: data?.length || 0 })
 
       if (!data || data.length === 0) {
         setDocuments([])
@@ -135,8 +126,6 @@ export default function DocumentsPage() {
             documentsWithClients.forEach((doc) => {
               doc.clients = clientsMap[doc.client_id] || null
             })
-          } else if (clientsError) {
-            console.error("Erreur lors de la récupération des clients:", clientsError)
           }
         }
       }
@@ -144,8 +133,7 @@ export default function DocumentsPage() {
       setDocuments(documentsWithClients)
       filterDocuments(documentsWithClients)
     } catch (err) {
-      console.error("Exception lors de la récupération des documents:", err)
-      setError(`Exception: ${err instanceof Error ? err.message : "Erreur inconnue"}`)
+      setError(`Une erreur est survenue lors du chargement des documents.`)
       setDocuments([])
       setFilteredDocuments([])
     } finally {
@@ -159,7 +147,6 @@ export default function DocumentsPage() {
       const { error: tableError } = await supabaseAdmin.from("clients").select("count").limit(1)
 
       if (tableError) {
-        console.error("Erreur lors de la vérification de la table clients:", tableError)
         setClients([])
         return
       }
@@ -171,13 +158,11 @@ export default function DocumentsPage() {
         .order("nom", { ascending: true })
 
       if (error) {
-        console.error("Erreur lors de la récupération des clients:", error)
         setClients([])
       } else if (data) {
         setClients(data)
       }
     } catch (err) {
-      console.error("Exception lors de la récupération des clients:", err)
       setClients([])
     }
   }
@@ -256,16 +241,29 @@ export default function DocumentsPage() {
         return
       }
 
-      // Télécharger le fichier dans le bucket Storage
+      // S'assurer que le dossier du client existe
+      const folderCreated = await ensureClientFolder(formData.client_id)
+      if (!folderCreated) {
+        setUploadError("Impossible de créer le dossier du client")
+        setUploadLoading(false)
+        return
+      }
+
+      // Préparer le chemin du fichier dans le dossier du client
       const fileExt = selectedFile.name.split(".").pop()
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`
-      const filePath = `documents/${formData.client_id}/${fileName}`
+      const filePath = `${formData.client_id}/${fileName}`
 
-      const { error: uploadError } = await supabaseAdmin.storage.from("client-documents").upload(filePath, selectedFile)
+      // Upload du fichier
+      const { error: uploadError } = await supabaseAdmin.storage
+        .from("client-documents")
+        .upload(filePath, selectedFile, {
+          cacheControl: "3600",
+          upsert: false,
+        })
 
       if (uploadError) {
-        console.error("Erreur lors du téléchargement du fichier:", uploadError)
-        setUploadError("Erreur lors du téléchargement du fichier")
+        setUploadError(`Erreur lors du téléchargement: ${uploadError.message}`)
         setUploadLoading(false)
         return
       }
@@ -285,7 +283,6 @@ export default function DocumentsPage() {
       })
 
       if (insertError) {
-        console.error("Erreur lors de l'insertion du document:", insertError)
         setUploadError("Erreur lors de l'enregistrement du document")
         setUploadLoading(false)
         return
@@ -320,8 +317,7 @@ export default function DocumentsPage() {
         setUploadSuccess(false)
       }, 2000)
     } catch (err) {
-      console.error("Exception lors du téléchargement:", err)
-      setUploadError(`Exception: ${err instanceof Error ? err.message : "Erreur inconnue"}`)
+      setUploadError(`Une erreur est survenue lors du téléchargement`)
     } finally {
       setUploadLoading(false)
     }
@@ -341,21 +337,13 @@ export default function DocumentsPage() {
         .single()
 
       if (fetchError) {
-        console.error("Erreur lors de la récupération du document:", fetchError)
         alert("Erreur lors de la suppression du document")
         return
       }
 
       // Supprimer le fichier du stockage
       if (document.fichier_path) {
-        const { error: storageError } = await supabaseAdmin.storage
-          .from("client-documents")
-          .remove([document.fichier_path])
-
-        if (storageError) {
-          console.error("Erreur lors de la suppression du fichier:", storageError)
-          // Continuer malgré l'erreur pour supprimer l'entrée de la base de données
-        }
+        await supabaseAdmin.storage.from("client-documents").remove([document.fichier_path])
       }
 
       // Supprimer les notifications associées
@@ -368,7 +356,6 @@ export default function DocumentsPage() {
       const { error: deleteError } = await supabaseAdmin.from("documents").delete().eq("id", documentId)
 
       if (deleteError) {
-        console.error("Erreur lors de la suppression du document:", deleteError)
         alert("Erreur lors de la suppression du document")
         return
       }
@@ -376,8 +363,7 @@ export default function DocumentsPage() {
       // Rafraîchir la liste des documents
       fetchDocuments()
     } catch (err) {
-      console.error("Exception lors de la suppression du document:", err)
-      alert(`Erreur: ${err instanceof Error ? err.message : "Erreur inconnue"}`)
+      alert(`Une erreur est survenue lors de la suppression`)
     }
   }
 
@@ -386,13 +372,11 @@ export default function DocumentsPage() {
       const { data, error } = await supabaseAdmin.storage.from("client-documents").createSignedUrl(documentPath, 60) // URL valide pendant 60 secondes
 
       if (error) {
-        console.error("Erreur lors de la création de l'URL signée:", error)
         return null
       }
 
       return data.signedUrl
     } catch (err) {
-      console.error("Exception lors de la création de l'URL signée:", err)
       return null
     }
   }
@@ -452,6 +436,54 @@ export default function DocumentsPage() {
     }
   }
 
+  // Fonction pour initialiser les dossiers clients
+  const initializeClientFolders = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      // Récupérer tous les clients
+      const { data: clientsData, error: clientsError } = await supabaseAdmin
+        .from("clients")
+        .select("id")
+        .order("id", { ascending: true })
+
+      if (clientsError) {
+        setError("Impossible de récupérer la liste des clients")
+        setLoading(false)
+        return
+      }
+
+      if (!clientsData || clientsData.length === 0) {
+        setError("Aucun client trouvé")
+        setLoading(false)
+        return
+      }
+
+      // Créer un dossier pour chaque client
+      let successCount = 0
+      let errorCount = 0
+
+      for (const client of clientsData) {
+        const success = await ensureClientFolder(client.id)
+        if (success) {
+          successCount++
+        } else {
+          errorCount++
+        }
+      }
+
+      alert(`Initialisation terminée: ${successCount} dossiers créés, ${errorCount} erreurs`)
+
+      // Rafraîchir les données
+      fetchDocuments()
+    } catch (err) {
+      setError(`Une erreur est survenue lors de l'initialisation des dossiers`)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="container max-w-7xl p-6">
       <h1 className="mb-6 text-3xl font-bold">Gestion des documents</h1>
@@ -472,18 +504,6 @@ export default function DocumentsPage() {
         </Alert>
       )}
 
-      {debug && (
-        <Alert className="mb-6 border-blue-200 bg-blue-50 text-blue-800">
-          <AlertTitle className="flex items-center">
-            <Info className="mr-2 h-4 w-4" />
-            Informations de débogage
-          </AlertTitle>
-          <AlertDescription>
-            <pre className="mt-2 whitespace-pre-wrap text-xs">{JSON.stringify(debug, null, 2)}</pre>
-          </AlertDescription>
-        </Alert>
-      )}
-
       <Card>
         <CardHeader>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -495,140 +515,151 @@ export default function DocumentsPage() {
                   : "La table 'documents' n'existe pas dans la base de données."}
               </CardDescription>
             </div>
-            <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="w-full sm:w-auto" disabled={!tableExists || clients.length === 0}>
-                  <FileUp className="mr-2 h-4 w-4" />
-                  Ajouter un document
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[500px]">
-                <DialogHeader>
-                  <DialogTitle>Ajouter un nouveau document</DialogTitle>
-                  <DialogDescription>Téléchargez un document et associez-le à un client.</DialogDescription>
-                </DialogHeader>
-                <form onSubmit={handleUpload}>
-                  <div className="grid gap-4 py-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="client_id">Client</Label>
-                      <Select
-                        name="client_id"
-                        value={formData.client_id}
-                        onValueChange={(value) => handleSelectChange("client_id", value)}
-                        required
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Sélectionner un client" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {clients.map((client) => (
-                            <SelectItem key={client.id} value={client.id}>
-                              {client.nom_entreprise || client.nom} ({client.email})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="titre">Titre</Label>
-                      <Input id="titre" name="titre" value={formData.titre} onChange={handleInputChange} required />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="description">Description</Label>
-                      <Textarea
-                        id="description"
-                        name="description"
-                        value={formData.description}
-                        onChange={handleInputChange}
-                        rows={3}
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button
+                variant="outline"
+                className="w-full sm:w-auto"
+                onClick={initializeClientFolders}
+                disabled={loading}
+              >
+                <FolderPlus className="mr-2 h-4 w-4" />
+                Initialiser les dossiers
+              </Button>
+              <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button className="w-full sm:w-auto" disabled={!tableExists || clients.length === 0}>
+                    <FileUp className="mr-2 h-4 w-4" />
+                    Ajouter un document
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-[500px]">
+                  <DialogHeader>
+                    <DialogTitle>Ajouter un nouveau document</DialogTitle>
+                    <DialogDescription>Téléchargez un document et associez-le à un client.</DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleUpload}>
+                    <div className="grid gap-4 py-4">
                       <div className="grid gap-2">
-                        <Label htmlFor="type">Type</Label>
+                        <Label htmlFor="client_id">Client</Label>
                         <Select
-                          name="type"
-                          value={formData.type}
-                          onValueChange={(value) => handleSelectChange("type", value)}
+                          name="client_id"
+                          value={formData.client_id}
+                          onValueChange={(value) => handleSelectChange("client_id", value)}
+                          required
                         >
                           <SelectTrigger>
-                            <SelectValue placeholder="Type de document" />
+                            <SelectValue placeholder="Sélectionner un client" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="facture">Facture</SelectItem>
-                            <SelectItem value="devis">Devis</SelectItem>
-                            <SelectItem value="contrat">Contrat</SelectItem>
-                            <SelectItem value="autre">Autre</SelectItem>
+                            {clients.map((client) => (
+                              <SelectItem key={client.id} value={client.id}>
+                                {client.nom_entreprise || client.nom} ({client.email})
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="statut">Statut</Label>
-                        <Select
-                          name="statut"
-                          value={formData.statut}
-                          onValueChange={(value) => handleSelectChange("statut", value)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Statut du document" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="en_attente">En attente</SelectItem>
-                            <SelectItem value="payé">Payé</SelectItem>
-                            <SelectItem value="signé">Signé</SelectItem>
-                            <SelectItem value="refusé">Refusé</SelectItem>
-                            <SelectItem value="expiré">Expiré</SelectItem>
-                            <SelectItem value="brouillon">Brouillon</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <Label htmlFor="titre">Titre</Label>
+                        <Input id="titre" name="titre" value={formData.titre} onChange={handleInputChange} required />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="description">Description</Label>
+                        <Textarea
+                          id="description"
+                          name="description"
+                          value={formData.description}
+                          onChange={handleInputChange}
+                          rows={3}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                          <Label htmlFor="type">Type</Label>
+                          <Select
+                            name="type"
+                            value={formData.type}
+                            onValueChange={(value) => handleSelectChange("type", value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Type de document" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="facture">Facture</SelectItem>
+                              <SelectItem value="devis">Devis</SelectItem>
+                              <SelectItem value="contrat">Contrat</SelectItem>
+                              <SelectItem value="autre">Autre</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="grid gap-2">
+                          <Label htmlFor="statut">Statut</Label>
+                          <Select
+                            name="statut"
+                            value={formData.statut}
+                            onValueChange={(value) => handleSelectChange("statut", value)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Statut du document" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="en_attente">En attente</SelectItem>
+                              <SelectItem value="payé">Payé</SelectItem>
+                              <SelectItem value="signé">Signé</SelectItem>
+                              <SelectItem value="refusé">Refusé</SelectItem>
+                              <SelectItem value="expiré">Expiré</SelectItem>
+                              <SelectItem value="brouillon">Brouillon</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="montant">Montant (€)</Label>
+                        <Input
+                          id="montant"
+                          name="montant"
+                          type="number"
+                          step="0.01"
+                          value={formData.montant}
+                          onChange={handleInputChange}
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="file">Fichier</Label>
+                        <Input id="file" type="file" onChange={handleFileChange} required />
+                        {selectedFile && (
+                          <p className="text-xs text-gray-500">
+                            {selectedFile.name} ({formatFileSize(selectedFile.size)})
+                          </p>
+                        )}
                       </div>
                     </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="montant">Montant (€)</Label>
-                      <Input
-                        id="montant"
-                        name="montant"
-                        type="number"
-                        step="0.01"
-                        value={formData.montant}
-                        onChange={handleInputChange}
-                      />
+                    {uploadError && (
+                      <Alert className="mb-4 border-red-200 bg-red-50 text-red-800">
+                        <AlertDescription>{uploadError}</AlertDescription>
+                      </Alert>
+                    )}
+                    {uploadSuccess && (
+                      <Alert className="mb-4 border-green-200 bg-green-50 text-green-800">
+                        <AlertDescription>Document téléchargé avec succès!</AlertDescription>
+                      </Alert>
+                    )}
+                    <div className="flex justify-end">
+                      <Button type="submit" disabled={uploadLoading}>
+                        {uploadLoading ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Téléchargement...
+                          </>
+                        ) : (
+                          "Télécharger"
+                        )}
+                      </Button>
                     </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="file">Fichier</Label>
-                      <Input id="file" type="file" onChange={handleFileChange} required />
-                      {selectedFile && (
-                        <p className="text-xs text-gray-500">
-                          {selectedFile.name} ({formatFileSize(selectedFile.size)})
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  {uploadError && (
-                    <Alert className="mb-4 border-red-200 bg-red-50 text-red-800">
-                      <AlertDescription>{uploadError}</AlertDescription>
-                    </Alert>
-                  )}
-                  {uploadSuccess && (
-                    <Alert className="mb-4 border-green-200 bg-green-50 text-green-800">
-                      <AlertDescription>Document téléchargé avec succès!</AlertDescription>
-                    </Alert>
-                  )}
-                  <DialogFooter>
-                    <Button type="submit" disabled={uploadLoading}>
-                      {uploadLoading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Téléchargement...
-                        </>
-                      ) : (
-                        "Télécharger"
-                      )}
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -801,11 +832,7 @@ CREATE TABLE IF NOT EXISTS document_notifications (
   est_lu BOOLEAN DEFAULT FALSE,
   date_creation TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   date_lecture TIMESTAMP WITH TIME ZONE
-);
-
--- Créer un bucket de stockage pour les documents
--- Exécutez cette commande dans l'interface de Supabase Storage
--- CREATE BUCKET client_documents;`}
+);`}
               </pre>
             </div>
           </CardContent>
