@@ -9,9 +9,10 @@ interface ParallaxSectionProps {
   children: React.ReactNode
   className?: string
   baseVelocity?: number
+    id?: string
 }
 
-export default function ParallaxSection({ children, className, baseVelocity = 0.2 }: ParallaxSectionProps) {
+export default function ParallaxSection({ children, className, baseVelocity = 0.2, ...props }: ParallaxSectionProps) {
   const ref = useRef<HTMLDivElement>(null)
 
   const { scrollYProgress } = useScroll({
@@ -22,7 +23,7 @@ export default function ParallaxSection({ children, className, baseVelocity = 0.
   const y = useTransform(scrollYProgress, [0, 1], [0, -100 * baseVelocity])
 
   return (
-    <div ref={ref} className={className}>
+    <div       {...props}   ref={ref} className={className}>
       <motion.div style={{ y }}>{children}</motion.div>
     </div>
   )

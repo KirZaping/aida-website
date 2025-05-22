@@ -4,7 +4,7 @@ import type React from "react"
 
 import Link from "next/link"
 import Image from "next/image"
-import { motion } from "framer-motion"
+import { AnimatePresence, motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { PenTool, ArrowLeft, Search, Calendar, Clock, ChevronRight, AlertCircle, CheckCircle } from "lucide-react"
 import { Input } from "@/components/ui/input"
@@ -101,13 +101,15 @@ export default function BlogPage() {
     message: string | null
   }>({ type: null, message: null })
 
+  const [articleActif, setArticleActif] = useState<number | null>(null)
+
   // Filtrer les articles en fonction de la catégorie et de la recherche
   const articlesFiltres = articles.filter((article) => {
     const matchCategorie = filtreCategorie ? article.categorie === filtreCategorie : true
     const matchRecherche = recherche
       ? article.titre.toLowerCase().includes(recherche.toLowerCase()) ||
-        article.extrait.toLowerCase().includes(recherche.toLowerCase()) ||
-        article.tags.some((tag) => tag.toLowerCase().includes(recherche.toLowerCase()))
+      article.extrait.toLowerCase().includes(recherche.toLowerCase()) ||
+      article.tags.some((tag) => tag.toLowerCase().includes(recherche.toLowerCase()))
       : true
     return matchCategorie && matchRecherche
   })
@@ -302,7 +304,9 @@ export default function BlogPage() {
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium">{article.auteur}</span>
-                        <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-800">
+                        <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-800"
+                          onClick={() => setArticleActif(article.id)}
+                        >
                           Lire l'article
                           <ChevronRight className="ml-1 h-4 w-4" />
                         </Button>
@@ -314,6 +318,99 @@ export default function BlogPage() {
             )}
           </div>
         </section>
+
+        {/* ——— Modal “Lire l’article” ——— */}
+      <AnimatePresence>
+        {articleActif !== null && (
+          <>
+            {/* fond semi-opaque */}
+            <motion.div
+              className="fixed inset-0 bg-black z-50"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.5 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setArticleActif(null)}
+            />
+
+            {/* conteneur modal */}
+            <motion.div
+              className="fixed inset-x-0 top-20 bottom-0 z-50 mx-auto max-w-4xl overflow-auto rounded-t-xl bg-background p-6 shadow-xl"
+              initial={{ opacity: 0, y: 100 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 100 }}
+              transition={{ type: "spring", damping: 25 }}
+            >
+              {(() => {
+                const art = articles.find((a) => a.id === articleActif)
+                if (!art) return null
+
+                return (
+                  <>
+                    <div className="flex items-center justify-between mb-6">
+                      <h2 className="text-2xl font-bold">{art.titre}</h2>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setArticleActif(null)}
+                      >
+                        <span className="sr-only">Fermer</span>
+                        {/* icône “X” */}
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="24"
+                          height="24"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="h-6 w-6"
+                        >
+                          <path d="M18 6 6 18" />
+                          <path d="m6 6 12 12" />
+                        </svg>
+                      </Button>
+                    </div>
+
+                    <div className="grid gap-6 md:grid-cols-2">
+                      <Image
+                        src={art.image}
+                        alt={art.titre}
+                        width={800}
+                        height={600}
+                        className="w-full h-auto object-cover rounded-lg"
+                      />
+
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          <Calendar className="h-4 w-4" />
+                          <span>{art.date}</span>
+                          <Clock className="h-4 w-4 ml-4" />
+                          <span>{art.tempsLecture}</span>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2">
+                          {art.tags.map((tag) => (
+                            <Badge key={tag} variant="secondary" className="text-xs">
+                              {tag}
+                            </Badge>
+                          ))}
+                        </div>
+
+                        <p className="text-muted-foreground">{art.extrait}</p>
+                        {/* Ici tu peux étendre avec le contenu complet de l’article */}
+                      </div>
+                    </div>
+                  </>
+                )
+              })()}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      
 
         {/* Newsletter */}
         <section className="w-full py-12 md:py-24 bg-muted">

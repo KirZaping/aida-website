@@ -7,6 +7,9 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+
+import { projets } from "@/data/projets"
+
 import {
   Award,
   BarChart,
@@ -24,8 +27,9 @@ import {
   MousePointer,
   AlertCircle,
   CheckCircle,
+  ExternalLink,
 } from "lucide-react"
-import { motion } from "framer-motion"
+import { AnimatePresence, motion } from "framer-motion"
 import { useEffect, useState, useRef } from "react"
 import AnimatedText from "@/components/animated-text"
 import AnimatedCard from "@/components/animated-card"
@@ -33,11 +37,17 @@ import ParallaxSection from "@/components/parallax-section"
 import ScrollToTop from "@/components/scroll-to-top"
 import { envoyerMessage } from "@/app/actions/contact"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
+
 // Ajouter l'import du composant SupabaseStatus en haut du fichier
 import SupabaseStatus from "@/components/supabase-status"
 
 // Dans le composant Home, ajouter le composant SupabaseStatus juste après l'ouverture de la balise <main>
 export default function Home() {
+  const [projetActif, setProjetActif] = useState<number | null>(null)
+
+  const featured = projets.filter((p) => p.featured).slice(0, 3)
+
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
   const [cursorVariant, setCursorVariant] = useState("default")
   const [contactStatus, setContactStatus] = useState<{
@@ -332,15 +342,7 @@ export default function Home() {
             </div>
           </div>
 
-          <motion.div
-            className="absolute bottom-5 left-1/2 transform -translate-x-1/2 flex flex-col items-center text-blue-800"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1, y: [0, 10, 0] }}
-            transition={{ delay: 1, duration: 1.5, repeat: Number.POSITIVE_INFINITY }}
-          >
-            <p className="text-sm font-medium mb-2">Découvrez nos services</p>
-            <MousePointer className="h-5 w-5" />
-          </motion.div>
+
         </section>
 
         {/* Services Section */}
@@ -472,25 +474,9 @@ export default function Home() {
               </div>
             </motion.div>
             <div className="mx-auto grid max-w-5xl gap-6 py-12 lg:grid-cols-3">
-              {[
-                {
-                  image: "/placeholder.svg?height=400&width=600",
-                  title: "Refonte de marque TechCorp",
-                  description: "Identité visuelle et stratégie digitale",
-                },
-                {
-                  image: "/placeholder.svg?height=400&width=600",
-                  title: "Campagne EcoVert",
-                  description: "Marketing digital et communication",
-                },
-                {
-                  image: "/placeholder.svg?height=400&width=600",
-                  title: "Lancement Produit InnoSanté",
-                  description: "Événementiel et relations presse",
-                },
-              ].map((project, index) => (
+              {featured.map((project, index) => (
                 <motion.div
-                  key={index}
+                  key={project.id}
                   className="group relative overflow-hidden rounded-lg shadow-lg transition-all hover:shadow-xl"
                   initial={{ opacity: 0, y: 50 }}
                   whileInView={{ opacity: 1, y: 0 }}
@@ -499,10 +485,10 @@ export default function Home() {
                   whileHover={{ y: -10 }}
                 >
                   <Image
-                    src={project.image || "/placeholder.svg"}
+                    src={project.image}
                     width={600}
                     height={400}
-                    alt={project.title}
+                    alt={project.titre}
                     className="h-64 w-full object-cover transition-all group-hover:scale-105"
                   />
                   <motion.div
@@ -511,9 +497,10 @@ export default function Home() {
                     whileHover={{ opacity: 1 }}
                     transition={{ duration: 0.3 }}
                   >
-                    <h3 className="text-xl font-bold text-white">{project.title}</h3>
-                    <p className="text-white/80">{project.description}</p>
+                    <h3 className="text-xl font-bold text-white">{project.titre}</h3>
+                    <p className="text-white/80">{project.description_courte}</p>
                     <motion.button
+                      onClick={() => setProjetActif(project.id)}
                       className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md w-max opacity-0 group-hover:opacity-100 transition-opacity"
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
@@ -774,12 +761,105 @@ export default function Home() {
                   />
                 </motion.div>
               </ParallaxSection>
+
+
+              <AnimatePresence>
+                {projetActif !== null && (
+                  <>
+                    {/* Fond semi-opaque */}
+                    <motion.div
+                      className="fixed inset-0 bg-black z-50"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 0.5 }}
+                      exit={{ opacity: 0 }}
+                      onClick={() => setProjetActif(null)}
+                    />
+                    {/* Contenu du modal */}
+                    <motion.div
+                      className="fixed inset-x-0 bottom-0 top-20 z-50 mx-auto max-w-4xl overflow-auto rounded-t-xl bg-background p-6 shadow-xl"
+                      initial={{ opacity: 0, y: 100 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 100 }}
+                      transition={{ type: "spring", damping: 25 }}
+                    >
+                      {(() => {
+                        const p = projets.find((p) => p.id === projetActif)
+                        if (!p) return null
+                        return (
+                          <>
+                            <div className="flex items-center justify-between mb-6">
+                              <h2 className="text-2xl font-bold">{p.titre}</h2>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setProjetActif(null)}
+                              >
+                                <span className="sr-only">Fermer</span>
+                                {/* icône “X” */}
+                                <svg /* … */>…</svg>
+                              </Button>
+                            </div>
+                            <div className="grid gap-6 md:grid-cols-2">
+                              <Image
+                                src={p.image}
+                                alt={p.titre}
+                                width={800}
+                                height={600}
+                                className="w-full h-auto object-cover rounded-lg"
+                              />
+                              <div>
+                                <h3 className="text-lg font-medium mb-2">Description</h3>
+                                <p className="text-muted-foreground">{p.description}</p>
+                                <div className="grid grid-cols-2 gap-4 mt-6">
+                                  <div>
+                                    <h4 className="text-sm font-medium text-muted-foreground">Client</h4>
+                                    <p>{p.client}</p>
+                                  </div>
+                                  <div>
+                                    <h4 className="text-sm font-medium text-muted-foreground">Année</h4>
+                                    <p>{p.annee}</p>
+                                  </div>
+                                  <div>
+                                    <h4 className="text-sm font-medium text-muted-foreground">Catégorie</h4>
+                                    <p>{p.categorie}</p>
+                                  </div>
+                                  <div>
+                                    <h4 className="text-sm font-medium text-muted-foreground">Tags</h4>
+                                    <div className="flex flex-wrap gap-1 mt-1">
+                                      {p.tags.map((tag) => (
+                                        <Badge key={tag} variant="secondary" className="text-xs">
+                                          {tag}
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="mt-6">
+                                  <Button className="btn-gradient text-white w-full">
+                                    Voir l'étude de cas complète
+                                    <ExternalLink className="ml-2 h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          </>
+                        )
+                      })()}
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+
+
+
+
             </div>
           </div>
         </section>
 
         {/* Stats Section */}
-        <section className="w-full py-12 md:py-24 lg:py-32 btn-gradient text-white relative overflow-hidden">
+        <section className="w-full py-12 md:py-24 lg:py-32 bg-gradient-to-r from-blue-600 via-blue-700 to-blue-800
+ text-white relative overflow-hidden">
           <motion.div
             className="absolute inset-0 z-0"
             initial={{ opacity: 0 }}
@@ -981,7 +1061,7 @@ export default function Home() {
                         whileHover={{ scale: 1.1, y: -5 }}
                         transition={{ type: "spring", stiffness: 400, damping: 10 }}
                       >
-                        <Link href="#" className="rounded-full bg-muted p-2 hover:bg-blue-100 transition-colors">
+                        <Link href="#" className="rounded-full p-2 transition-colors">
                           {social.icon}
                           <span className="sr-only">{social.label}</span>
                         </Link>
@@ -1206,8 +1286,8 @@ export default function Home() {
           </p>
           <nav className="flex gap-4 sm:gap-6">
             {[
-              { name: "Mentions légales", href: "#" },
-              { name: "Politique de confidentialité", href: "#" },
+              { name: "Mentions légales", href: "/mentions-legales" },
+              { name: "Politique de confidentialité", href: "/politique-confidentialite" },
               { name: "FAQ", href: "/faq" },
             ].map((item, index) => (
               <motion.div

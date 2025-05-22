@@ -247,7 +247,7 @@ export default function ProjetsPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="text-white border-white hover:bg-white/20 hover:text-white"
+                            className="btn-gradient hover:text-white  text-white border-0 px-8"
                             onClick={() => setProjetActif(projet.id)}
                           >
                             Voir le projet

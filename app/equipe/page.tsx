@@ -260,40 +260,6 @@ export default function EquipePage() {
             </div>
           </div>
         </section>
-
-        {/* Rejoignez-nous */}
-        <section className="w-full py-12 md:py-24 bg-blue-gradient">
-          <div className="container px-4 md:px-6">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              viewport={{ once: true }}
-              className="max-w-3xl mx-auto text-center"
-            >
-              <AnimatedText
-                text="Rejoignez notre équipe"
-                className="text-3xl font-bold tracking-tighter md:text-4xl/tight"
-                delay={3}
-              />
-              <p className="mt-4 text-muted-foreground md:text-lg">
-                Vous êtes passionné par la communication et souhaitez rejoindre une équipe dynamique ? Découvrez nos
-                opportunités de carrière.
-              </p>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                viewport={{ once: true }}
-                className="mt-8"
-              >
-                <Button size="lg" className="bg-white text-blue-600 hover:bg-blue-50">
-                  Voir nos offres d'emploi
-                </Button>
-              </motion.div>
-            </motion.div>
-          </div>
-        </section>
       </main>
 
       {/* Footer */}

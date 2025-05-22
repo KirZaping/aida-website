@@ -411,15 +411,16 @@ export default function ServicesPage() {
                 className="mt-8 flex flex-col gap-4 sm:flex-row sm:justify-center"
               >
                 <Link href="/devis">
-                  <Button size="lg" className="bg-white text-blue-600 hover:bg-blue-50 w-full sm:w-auto">
+                  <Button size="default" className="btn-gradient text-white">
                     Demander un devis
+                    <ChevronRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
                 <Link href="/projets">
                   <Button
                     size="lg"
                     variant="outline"
-                    className="border-white text-white hover:bg-white/10 w-full sm:w-auto"
+                    className="px-8 border-blue-500 text-blue-600 hover:bg-blue-50 transition-all"
                   >
                     Voir nos réalisations
                   </Button>
