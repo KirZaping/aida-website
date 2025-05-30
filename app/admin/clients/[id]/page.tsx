@@ -13,25 +13,47 @@ import { Loader2, ArrowLeft, Edit, FileText, Folder, Mail, Phone, MapPin, Calend
 import { getClient, getClientDocuments, getClientProjects } from "../../actions/clients"
 import { formatDate } from "@/lib/utils"
 
-export default function ClientDetailPage({ params }: { params: { id: string } }) {
+export default function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
+  const [clientId, setClientId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [client, setClient] = useState<any>(null)
   const [documents, setDocuments] = useState<any[]>([])
   const [projects, setProjects] = useState<any[]>([])
   const [error, setError] = useState<string | null>(null)
 
+  // Résoudre les params de manière asynchrone
   useEffect(() => {
-    fetchClientData()
-  }, [params.id])
+    const resolveParams = async () => {
+      try {
+        const resolvedParams = await params
+        setClientId(resolvedParams.id)
+      } catch (err) {
+        console.error("Erreur lors de la résolution des params:", err)
+        setError("Erreur lors du chargement de la page")
+        setLoading(false)
+      }
+    }
+
+    resolveParams()
+  }, [params])
+
+  // Charger les données du client une fois l'ID résolu
+  useEffect(() => {
+    if (clientId) {
+      fetchClientData()
+    }
+  }, [clientId])
 
   const fetchClientData = async () => {
+    if (!clientId) return
+
     try {
       setLoading(true)
       setError(null)
 
       // Récupérer les informations du client
-      const clientResult = await getClient(params.id)
+      const clientResult = await getClient(clientId)
       if (clientResult.error) {
         setError(clientResult.error)
         return
@@ -39,7 +61,7 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
       setClient(clientResult.client)
 
       // Récupérer les documents du client
-      const documentsResult = await getClientDocuments(params.id)
+      const documentsResult = await getClientDocuments(clientId)
       if (documentsResult.error) {
         console.error("Erreur lors de la récupération des documents:", documentsResult.error)
       } else {
@@ -47,7 +69,7 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
       }
 
       // Récupérer les projets du client
-      const projectsResult = await getClientProjects(params.id)
+      const projectsResult = await getClientProjects(clientId)
       if (projectsResult.error) {
         console.error("Erreur lors de la récupération des projets:", projectsResult.error)
       } else {
@@ -74,11 +96,15 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
   if (error) {
     return (
       <div className="container max-w-7xl p-6">
-        <Alert className="mb-6 border-red-200 bg-red-50 text-red-800">
-          <AlertTitle>Erreur</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
+        <Alert className="mb-6 border-red-300 bg-red-50">
+          <AlertTitle className="text-red-800">Erreur</AlertTitle>
+          <AlertDescription className="text-red-700">{error}</AlertDescription>
         </Alert>
-        <Button variant="outline" onClick={() => router.back()}>
+        <Button
+          variant="outline"
+          onClick={() => router.back()}
+          className="border-gray-300 text-gray-700 hover:bg-gray-50"
+        >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Retour
         </Button>
@@ -89,11 +115,17 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
   if (!client) {
     return (
       <div className="container max-w-7xl p-6">
-        <Alert className="mb-6 border-amber-200 bg-amber-50 text-amber-800">
-          <AlertTitle>Client introuvable</AlertTitle>
-          <AlertDescription>Le client demandé n'existe pas ou a été supprimé.</AlertDescription>
+        <Alert className="mb-6 border-amber-300 bg-amber-50">
+          <AlertTitle className="text-amber-800">Client introuvable</AlertTitle>
+          <AlertDescription className="text-amber-700">
+            Le client demandé n'existe pas ou a été supprimé.
+          </AlertDescription>
         </Alert>
-        <Button variant="outline" onClick={() => router.push("/admin/clients")}>
+        <Button
+          variant="outline"
+          onClick={() => router.push("/admin/clients")}
+          className="border-gray-300 text-gray-700 hover:bg-gray-50"
+        >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Retour à la liste des clients
         </Button>
@@ -105,59 +137,75 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
     <div className="container max-w-7xl p-6">
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="outline" size="sm" onClick={() => router.back()}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.back()}
+            className="border-gray-300 text-gray-700 hover:bg-gray-50"
+          >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Retour
           </Button>
-          <h1 className="text-3xl font-bold">
+          <h1 className="text-3xl font-bold text-gray-900">
             {client.prenom} {client.nom}
           </h1>
-          <Badge variant={client.type === "client" ? "default" : client.type === "prospect" ? "secondary" : "outline"}>
+          <Badge
+            className={
+              client.type === "client"
+                ? "bg-blue-600 text-white"
+                : client.type === "prospect"
+                  ? "bg-gray-200 text-gray-900"
+                  : "bg-white text-gray-700 border border-gray-300"
+            }
+          >
             {client.type === "client" ? "Client" : client.type === "prospect" ? "Prospect" : "Partenaire"}
           </Badge>
         </div>
-        <Button onClick={() => router.push(`/admin/clients/${params.id}/modifier`)}>
+        <Button
+          onClick={() => router.push(`/admin/clients/${clientId}/modifier`)}
+          className="bg-blue-600 text-white hover:bg-blue-700"
+        >
           <Edit className="mr-2 h-4 w-4" />
           Modifier
         </Button>
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
-        <Card className="md:col-span-1">
-          <CardHeader>
-            <CardTitle>Informations</CardTitle>
-            <CardDescription>Détails du client</CardDescription>
+        <Card className="md:col-span-1 bg-white border border-gray-200 shadow-sm">
+          <CardHeader className="bg-gray-50 border-b border-gray-200">
+            <CardTitle className="text-gray-900">Informations</CardTitle>
+            <CardDescription className="text-gray-600">Détails du client</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 p-6">
             <div className="flex items-start gap-2">
               <Mail className="mt-0.5 h-4 w-4 text-gray-500" />
               <div>
-                <p className="font-medium">Email</p>
-                <p className="text-sm text-gray-500">{client.email}</p>
+                <p className="font-medium text-gray-900">Email</p>
+                <p className="text-sm text-gray-600">{client.email}</p>
               </div>
             </div>
             {client.telephone && (
               <div className="flex items-start gap-2">
                 <Phone className="mt-0.5 h-4 w-4 text-gray-500" />
                 <div>
-                  <p className="font-medium">Téléphone</p>
-                  <p className="text-sm text-gray-500">{client.telephone}</p>
+                  <p className="font-medium text-gray-900">Téléphone</p>
+                  <p className="text-sm text-gray-600">{client.telephone}</p>
                 </div>
               </div>
             )}
             <div className="flex items-start gap-2">
               <FileText className="mt-0.5 h-4 w-4 text-gray-500" />
               <div>
-                <p className="font-medium">Entreprise</p>
-                <p className="text-sm text-gray-500">{client.entreprise}</p>
+                <p className="font-medium text-gray-900">Entreprise</p>
+                <p className="text-sm text-gray-600">{client.entreprise}</p>
               </div>
             </div>
             {(client.adresse || client.code_postal || client.ville) && (
               <div className="flex items-start gap-2">
                 <MapPin className="mt-0.5 h-4 w-4 text-gray-500" />
                 <div>
-                  <p className="font-medium">Adresse</p>
-                  <p className="text-sm text-gray-500">
+                  <p className="font-medium text-gray-900">Adresse</p>
+                  <p className="text-sm text-gray-600">
                     {client.adresse && (
                       <span>
                         {client.adresse}
@@ -178,13 +226,13 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
             <div className="flex items-start gap-2">
               <Calendar className="mt-0.5 h-4 w-4 text-gray-500" />
               <div>
-                <p className="font-medium">Date de création</p>
-                <p className="text-sm text-gray-500">{formatDate(client.date_creation)}</p>
+                <p className="font-medium text-gray-900">Date de création</p>
+                <p className="text-sm text-gray-600">{formatDate(client.date_creation)}</p>
               </div>
             </div>
           </CardContent>
-          <CardFooter>
-            <Button variant="outline" className="w-full" asChild>
+          <CardFooter className="p-6 pt-0">
+            <Button variant="outline" className="w-full border-gray-300 text-gray-700 hover:bg-gray-50" asChild>
               <Link href={`mailto:${client.email}`}>
                 <Mail className="mr-2 h-4 w-4" />
                 Envoyer un email
@@ -193,50 +241,56 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
           </CardFooter>
         </Card>
 
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle>Activité</CardTitle>
-            <CardDescription>Documents et projets du client</CardDescription>
+        <Card className="md:col-span-2 bg-white border border-gray-200 shadow-sm">
+          <CardHeader className="bg-gray-50 border-b border-gray-200">
+            <CardTitle className="text-gray-900">Activité</CardTitle>
+            <CardDescription className="text-gray-600">Documents et projets du client</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-6">
             <Tabs defaultValue="documents">
-              <TabsList className="mb-4">
-                <TabsTrigger value="documents">
+              <TabsList className="mb-4 bg-gray-100">
+                <TabsTrigger
+                  value="documents"
+                  className="text-gray-700 data-[state=active]:bg-white data-[state=active]:text-gray-900"
+                >
                   <FileText className="mr-2 h-4 w-4" />
                   Documents ({documents.length})
                 </TabsTrigger>
-                <TabsTrigger value="projects">
+                <TabsTrigger
+                  value="projects"
+                  className="text-gray-700 data-[state=active]:bg-white data-[state=active]:text-gray-900"
+                >
                   <Folder className="mr-2 h-4 w-4" />
                   Projets ({projects.length})
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="documents">
                 {documents.length === 0 ? (
-                  <div className="flex h-40 flex-col items-center justify-center rounded-md border border-dashed p-8 text-center">
+                  <div className="flex h-40 flex-col items-center justify-center rounded-md border border-dashed border-gray-300 p-8 text-center">
                     <FileText className="mb-2 h-8 w-8 text-gray-400" />
-                    <h3 className="mb-1 text-lg font-medium">Aucun document</h3>
-                    <p className="text-sm text-gray-500">Ce client n'a pas encore de documents.</p>
-                    <Button className="mt-4" asChild>
-                      <Link href="/admin/documents/ajouter">Ajouter un document</Link>
+                    <h3 className="mb-1 text-lg font-medium text-gray-900">Aucun document</h3>
+                    <p className="text-sm text-gray-600">Ce client n'a pas encore de documents.</p>
+                    <Button className="mt-4 bg-blue-600 text-white hover:bg-blue-700" asChild>
+                      <Link href="/admin/documents">Ajouter un document</Link>
                     </Button>
                   </div>
                 ) : (
-                  <div className="rounded-md border">
+                  <div className="rounded-md border border-gray-200">
                     <Table>
                       <TableHeader>
-                        <TableRow>
-                          <TableHead>Titre</TableHead>
-                          <TableHead>Type</TableHead>
-                          <TableHead>Statut</TableHead>
-                          <TableHead>Date</TableHead>
+                        <TableRow className="bg-gray-50">
+                          <TableHead className="text-gray-900">Titre</TableHead>
+                          <TableHead className="text-gray-900">Type</TableHead>
+                          <TableHead className="text-gray-900">Statut</TableHead>
+                          <TableHead className="text-gray-900">Date</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {documents.map((doc) => (
                           <TableRow key={doc.id} className="cursor-pointer hover:bg-gray-50">
-                            <TableCell className="font-medium">{doc.titre}</TableCell>
+                            <TableCell className="font-medium text-gray-900">{doc.titre}</TableCell>
                             <TableCell>
-                              <Badge variant="outline">
+                              <Badge className="bg-white text-gray-700 border border-gray-300">
                                 {doc.type === "facture"
                                   ? "Facture"
                                   : doc.type === "devis"
@@ -248,14 +302,14 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
                             </TableCell>
                             <TableCell>
                               <Badge
-                                variant={
+                                className={
                                   doc.statut === "payé" || doc.statut === "signé"
-                                    ? "default"
+                                    ? "bg-blue-600 text-white"
                                     : doc.statut === "en_attente"
-                                      ? "secondary"
+                                      ? "bg-gray-200 text-gray-900"
                                       : doc.statut === "refusé" || doc.statut === "expiré"
-                                        ? "destructive"
-                                        : "outline"
+                                        ? "bg-red-600 text-white"
+                                        : "bg-white text-gray-700 border border-gray-300"
                                 }
                               >
                                 {doc.statut === "en_attente"
@@ -273,7 +327,7 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
                                             : doc.statut}
                               </Badge>
                             </TableCell>
-                            <TableCell>{formatDate(doc.date_creation)}</TableCell>
+                            <TableCell className="text-gray-600">{formatDate(doc.date_creation)}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -283,37 +337,37 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
               </TabsContent>
               <TabsContent value="projects">
                 {projects.length === 0 ? (
-                  <div className="flex h-40 flex-col items-center justify-center rounded-md border border-dashed p-8 text-center">
+                  <div className="flex h-40 flex-col items-center justify-center rounded-md border border-dashed border-gray-300 p-8 text-center">
                     <Folder className="mb-2 h-8 w-8 text-gray-400" />
-                    <h3 className="mb-1 text-lg font-medium">Aucun projet</h3>
-                    <p className="text-sm text-gray-500">Ce client n'a pas encore de projets.</p>
-                    <Button className="mt-4">Ajouter un projet</Button>
+                    <h3 className="mb-1 text-lg font-medium text-gray-900">Aucun projet</h3>
+                    <p className="text-sm text-gray-600">Ce client n'a pas encore de projets.</p>
+                    <Button className="mt-4 bg-blue-600 text-white hover:bg-blue-700">Ajouter un projet</Button>
                   </div>
                 ) : (
-                  <div className="rounded-md border">
+                  <div className="rounded-md border border-gray-200">
                     <Table>
                       <TableHeader>
-                        <TableRow>
-                          <TableHead>Nom</TableHead>
-                          <TableHead>Statut</TableHead>
-                          <TableHead>Progression</TableHead>
-                          <TableHead>Date de début</TableHead>
+                        <TableRow className="bg-gray-50">
+                          <TableHead className="text-gray-900">Nom</TableHead>
+                          <TableHead className="text-gray-900">Statut</TableHead>
+                          <TableHead className="text-gray-900">Progression</TableHead>
+                          <TableHead className="text-gray-900">Date de début</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {projects.map((project) => (
                           <TableRow key={project.id} className="cursor-pointer hover:bg-gray-50">
-                            <TableCell className="font-medium">{project.nom}</TableCell>
+                            <TableCell className="font-medium text-gray-900">{project.nom}</TableCell>
                             <TableCell>
                               <Badge
-                                variant={
+                                className={
                                   project.statut === "terminé"
-                                    ? "default"
+                                    ? "bg-blue-600 text-white"
                                     : project.statut === "en_cours"
-                                      ? "secondary"
+                                      ? "bg-gray-200 text-gray-900"
                                       : project.statut === "annulé"
-                                        ? "destructive"
-                                        : "outline"
+                                        ? "bg-red-600 text-white"
+                                        : "bg-white text-gray-700 border border-gray-300"
                                 }
                               >
                                 {project.statut === "en_cours"
@@ -335,10 +389,10 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
                                     style={{ width: `${project.progression}%` }}
                                   ></div>
                                 </div>
-                                <span className="text-xs font-medium">{project.progression}%</span>
+                                <span className="text-xs font-medium text-gray-700">{project.progression}%</span>
                               </div>
                             </TableCell>
-                            <TableCell>{formatDate(project.date_debut)}</TableCell>
+                            <TableCell className="text-gray-600">{formatDate(project.date_debut)}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>

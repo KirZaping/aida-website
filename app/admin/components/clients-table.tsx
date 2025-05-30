@@ -8,46 +8,52 @@ interface ClientsTableProps {
 
 export function ClientsTable({ clients }: ClientsTableProps) {
   return (
-    <div className="rounded-md border">
+    <div className="rounded-md border border-gray-200">
       <Table>
         <TableHeader>
-          <TableRow>
-            <TableHead>Nom</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Type</TableHead>
-            <TableHead>Date</TableHead>
+          <TableRow className="bg-gray-50">
+            <TableHead className="text-gray-900">Nom</TableHead>
+            <TableHead className="text-gray-900">Email</TableHead>
+            <TableHead className="text-gray-900">Type</TableHead>
+            <TableHead className="text-gray-900">Date</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {clients.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={4} className="h-24 text-center">
+              <TableCell colSpan={4} className="h-24 text-center text-gray-600">
                 Aucun client trouvé.
               </TableCell>
             </TableRow>
           ) : (
             clients.map((client) => (
-              <TableRow key={client.id}>
-                <TableCell className="font-medium">
-                  <a href={`/admin/clients/${client.id}`} className="hover:underline">
+              <TableRow key={client.id} className="hover:bg-gray-50">
+                <TableCell className="font-medium text-gray-900">
+                  <a href={`/admin/clients/${client.id}`} className="hover:underline hover:text-blue-600">
                     {client.nom}
                   </a>
                 </TableCell>
-                <TableCell>{client.email}</TableCell>
+                <TableCell className="text-gray-700">{client.email}</TableCell>
                 <TableCell>
                   {client.type ? (
                     <Badge
-                      variant={
-                        client.type === "client" ? "default" : client.type === "prospect" ? "outline" : "secondary"
+                      className={
+                        client.type === "client"
+                          ? "bg-blue-600 text-white"
+                          : client.type === "prospect"
+                            ? "bg-white text-gray-700 border border-gray-300"
+                            : "bg-gray-200 text-gray-900"
                       }
                     >
                       {client.type}
                     </Badge>
                   ) : (
-                    <Badge variant="outline">Non défini</Badge>
+                    <Badge className="bg-white text-gray-700 border border-gray-300">Non défini</Badge>
                   )}
                 </TableCell>
-                <TableCell>{client.date_creation ? formatDate(client.date_creation) : "Date inconnue"}</TableCell>
+                <TableCell className="text-gray-600">
+                  {client.date_creation ? formatDate(client.date_creation) : "Date inconnue"}
+                </TableCell>
               </TableRow>
             ))
           )}

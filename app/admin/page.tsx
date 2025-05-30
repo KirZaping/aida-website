@@ -7,7 +7,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { StatsCards } from "./components/stats-cards"
 import { DevisTable } from "./components/devis-table"
 import { DevisCharts } from "./components/devis-charts"
-import { supabaseAdmin } from "@/lib/supabase"
 import { Loader2, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ClientsTable } from "./components/clients-table"
@@ -39,70 +38,62 @@ export default function AdminDashboard() {
       setLoading(true)
       setError(null)
 
-      // Récupérer les devis depuis Supabase
-      const { data: devisData, error: devisError } = await supabaseAdmin
-        .from("devis")
-        .select("*")
-        .order("date_creation", { ascending: false })
+      // Appeler l'API route pour récupérer toutes les données
+      const response = await fetch("/api/admin/dashboard", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
 
-      // Récupérer les clients depuis Supabase
-      const { data: clientsData, error: clientsError } = await supabaseAdmin
-        .from("clients")
-        .select("*")
-        .order("date_creation", { ascending: false })
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
 
-      // Récupérer les documents depuis Supabase
-      const { data: documentsData, error: documentsError } = await supabaseAdmin
-        .from("documents")
-        .select("*")
-        .order("date_creation", { ascending: false })
+      const result = await response.json()
 
-      if (devisError) {
-        console.error("Erreur lors de la récupération des devis:", devisError)
+      if (!result.success) {
+        throw new Error(result.error || "Erreur lors de la récupération des données")
+      }
 
-        // Vérifier si l'erreur est due à une table inexistante
-        if (devisError.message && devisError.message.includes("does not exist")) {
-          setTableExists(false)
-          setError("La table 'devis' n'existe pas dans la base de données.")
+      const { devis, clients, documents } = result.data
+      const errors = result.errors
 
-          // Utiliser des données de démonstration
-          const demoData = generateDemoData()
-          setDevisList(demoData)
-          calculateStats(demoData, [], [])
-        } else {
-          setError(`Erreur: ${devisError.message}`)
-          setDevisList([])
-          calculateStats([], [], [])
-        }
-      } else if (devisData) {
+      // Vérifier si la table devis existe
+      if (errors.devis && errors.devis.includes("does not exist")) {
+        setTableExists(false)
+        setError("La table 'devis' n'existe pas dans la base de données.")
+
+        // Utiliser des données de démonstration
+        const demoData = generateDemoData()
+        setDevisList(demoData)
+        calculateStats(demoData, clients, documents)
+      } else {
         setTableExists(true)
-        setDevisList(devisData)
+        setDevisList(devis)
+        calculateStats(devis, clients, documents)
+      }
 
-        // Traiter les données des clients
-        if (clientsError) {
-          console.error("Erreur lors de la récupération des clients:", clientsError)
-          setClientsList([])
-        } else {
-          setClientsList(clientsData || [])
-        }
+      // Définir les autres données
+      setClientsList(clients)
+      setDocumentsList(documents)
 
-        // Traiter les données des documents
-        if (documentsError) {
-          console.error("Erreur lors de la récupération des documents:", documentsError)
-          setDocumentsList([])
-        } else {
-          setDocumentsList(documentsData || [])
-        }
-
-        calculateStats(devisData, clientsData || [], documentsData || [])
+      // Afficher les erreurs non critiques
+      if (errors.clients && !errors.clients.includes("does not exist")) {
+        console.warn("Avertissement clients:", errors.clients)
+      }
+      if (errors.documents && !errors.documents.includes("does not exist")) {
+        console.warn("Avertissement documents:", errors.documents)
       }
     } catch (err) {
-      console.error("Exception lors de la récupération des données:", err)
-      setError(`Exception: ${err instanceof Error ? err.message : "Erreur inconnue"}`)
+      console.error("Erreur lors de la récupération des données:", err)
+      setError(`Erreur: ${err instanceof Error ? err.message : "Erreur inconnue"}`)
 
       // Utiliser des données de démonstration en cas d'erreur
       const demoData = generateDemoData()
       setDevisList(demoData)
+      setClientsList([])
+      setDocumentsList([])
       calculateStats(demoData, [], [])
     } finally {
       setLoading(false)
@@ -146,49 +137,87 @@ export default function AdminDashboard() {
   return (
     <div className="container max-w-7xl p-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">Tableau de bord</h1>
-        <Button onClick={fetchAllData} variant="outline" size="sm" className="gap-2">
-          <RefreshCw className="h-4 w-4" />
+        <h1 className="text-3xl font-bold text-gray-900">Tableau de bord</h1>
+        <Button
+          onClick={fetchAllData}
+          variant="outline"
+          size="sm"
+          className="gap-2 border-gray-300 text-gray-700 hover:bg-gray-50"
+          disabled={loading}
+        >
+          <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           Actualiser
         </Button>
       </div>
 
       {!tableExists && (
-        <Alert className="mb-6 border-amber-200 bg-amber-50 text-amber-800">
-          <AlertTitle>Table manquante</AlertTitle>
-          <AlertDescription>
+        <Alert className="mb-6 border-amber-300 bg-amber-50">
+          <AlertTitle className="text-amber-800">Table manquante</AlertTitle>
+          <AlertDescription className="text-amber-700">
             La table "devis" n'existe pas dans la base de données. Les données affichées sont des exemples.
           </AlertDescription>
         </Alert>
       )}
 
       {error && !error.includes("does not exist") && (
-        <Alert className="mb-6 border-red-200 bg-red-50 text-red-800">
-          <AlertTitle>Erreur</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
+        <Alert className="mb-6 border-red-300 bg-red-50">
+          <AlertTitle className="text-red-800">Erreur</AlertTitle>
+          <AlertDescription className="text-red-700">{error}</AlertDescription>
         </Alert>
       )}
 
       <StatsCards stats={stats} />
 
       <Tabs defaultValue="apercu" className="mt-8">
-        <TabsList className="mb-4">
-          <TabsTrigger value="apercu">Aperçu</TabsTrigger>
-          <TabsTrigger value="devis">Devis</TabsTrigger>
-          <TabsTrigger value="clients">Clients</TabsTrigger>
-          <TabsTrigger value="documents">Documents</TabsTrigger>
-          <TabsTrigger value="statistiques">Statistiques</TabsTrigger>
-          {!tableExists && <TabsTrigger value="create-table">Créer la table</TabsTrigger>}
+        <TabsList className="mb-4 bg-gray-100">
+          <TabsTrigger
+            value="apercu"
+            className="text-gray-700 data-[state=active]:bg-white data-[state=active]:text-gray-900"
+          >
+            Aperçu
+          </TabsTrigger>
+          <TabsTrigger
+            value="devis"
+            className="text-gray-700 data-[state=active]:bg-white data-[state=active]:text-gray-900"
+          >
+            Devis
+          </TabsTrigger>
+          <TabsTrigger
+            value="clients"
+            className="text-gray-700 data-[state=active]:bg-white data-[state=active]:text-gray-900"
+          >
+            Clients
+          </TabsTrigger>
+          <TabsTrigger
+            value="documents"
+            className="text-gray-700 data-[state=active]:bg-white data-[state=active]:text-gray-900"
+          >
+            Documents
+          </TabsTrigger>
+          <TabsTrigger
+            value="statistiques"
+            className="text-gray-700 data-[state=active]:bg-white data-[state=active]:text-gray-900"
+          >
+            Statistiques
+          </TabsTrigger>
+          {!tableExists && (
+            <TabsTrigger
+              value="create-table"
+              className="text-gray-700 data-[state=active]:bg-white data-[state=active]:text-gray-900"
+            >
+              Créer la table
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="apercu">
           <div className="flex flex-col gap-6">
-            <Card className="w-full">
-              <CardHeader>
-                <CardTitle>Devis récents</CardTitle>
-                <CardDescription>Les 5 derniers devis reçus</CardDescription>
+            <Card className="w-full bg-white border border-gray-200 shadow-sm">
+              <CardHeader className="bg-gray-50 border-b border-gray-200">
+                <CardTitle className="text-gray-900">Devis récents</CardTitle>
+                <CardDescription className="text-gray-600">Les 5 derniers devis reçus</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-6">
                 {loading ? (
                   <div className="flex h-40 items-center justify-center">
                     <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
@@ -199,12 +228,12 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
 
-            <Card className="w-full">
-              <CardHeader>
-                <CardTitle>Clients récents</CardTitle>
-                <CardDescription>Les 5 derniers clients ajoutés</CardDescription>
+            <Card className="w-full bg-white border border-gray-200 shadow-sm">
+              <CardHeader className="bg-gray-50 border-b border-gray-200">
+                <CardTitle className="text-gray-900">Clients récents</CardTitle>
+                <CardDescription className="text-gray-600">Les 5 derniers clients ajoutés</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-6">
                 {loading ? (
                   <div className="flex h-40 items-center justify-center">
                     <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
@@ -212,17 +241,17 @@ export default function AdminDashboard() {
                 ) : clientsList.length > 0 ? (
                   <ClientsTable clients={clientsList.slice(0, 5)} />
                 ) : (
-                  <p className="text-sm text-muted-foreground py-4">Aucun client trouvé.</p>
+                  <p className="text-sm text-gray-600 py-4">Aucun client trouvé.</p>
                 )}
               </CardContent>
             </Card>
 
-            <Card className="w-full">
-              <CardHeader>
-                <CardTitle>Documents récents</CardTitle>
-                <CardDescription>Les 5 derniers documents ajoutés</CardDescription>
+            <Card className="w-full bg-white border border-gray-200 shadow-sm">
+              <CardHeader className="bg-gray-50 border-b border-gray-200">
+                <CardTitle className="text-gray-900">Documents récents</CardTitle>
+                <CardDescription className="text-gray-600">Les 5 derniers documents ajoutés</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-6">
                 {loading ? (
                   <div className="flex h-40 items-center justify-center">
                     <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
@@ -230,17 +259,17 @@ export default function AdminDashboard() {
                 ) : documentsList.length > 0 ? (
                   <DocumentsTable documents={documentsList.slice(0, 5)} />
                 ) : (
-                  <p className="text-sm text-muted-foreground py-4">Aucun document trouvé.</p>
+                  <p className="text-sm text-gray-600 py-4">Aucun document trouvé dans la base de données.</p>
                 )}
               </CardContent>
             </Card>
 
-            <Card className="w-full">
-              <CardHeader>
-                <CardTitle>Répartition par statut</CardTitle>
-                <CardDescription>Visualisation des devis par statut</CardDescription>
+            <Card className="w-full bg-white border border-gray-200 shadow-sm">
+              <CardHeader className="bg-gray-50 border-b border-gray-200">
+                <CardTitle className="text-gray-900">Répartition par statut</CardTitle>
+                <CardDescription className="text-gray-600">Visualisation des devis par statut</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-6">
                 {loading ? (
                   <div className="flex h-40 items-center justify-center">
                     <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
@@ -253,12 +282,12 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
 
-            <Card className="w-full">
-              <CardHeader>
-                <CardTitle>Activité récente</CardTitle>
-                <CardDescription>Dernières actions effectuées</CardDescription>
+            <Card className="w-full bg-white border border-gray-200 shadow-sm">
+              <CardHeader className="bg-gray-50 border-b border-gray-200">
+                <CardTitle className="text-gray-900">Activité récente</CardTitle>
+                <CardDescription className="text-gray-600">Dernières actions effectuées</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-6">
                 <div className="space-y-4">
                   {loading ? (
                     <div className="flex h-40 items-center justify-center">
@@ -269,29 +298,29 @@ export default function AdminDashboard() {
                       {devisList.length > 0 && (
                         <li className="flex items-center gap-2">
                           <span className="h-2 w-2 rounded-full bg-blue-500"></span>
-                          <span>Nouveau devis de {devisList[0].nom}</span>
+                          <span className="text-gray-700">Nouveau devis de {devisList[0].nom}</span>
                         </li>
                       )}
                       {clientsList.length > 0 && (
                         <li className="flex items-center gap-2">
                           <span className="h-2 w-2 rounded-full bg-green-500"></span>
-                          <span>Nouveau client: {clientsList[0].nom}</span>
+                          <span className="text-gray-700">Nouveau client: {clientsList[0].nom}</span>
                         </li>
                       )}
                       {documentsList.length > 0 && (
                         <li className="flex items-center gap-2">
                           <span className="h-2 w-2 rounded-full bg-purple-500"></span>
-                          <span>Nouveau document: {documentsList[0].titre}</span>
+                          <span className="text-gray-700">Nouveau document: {documentsList[0].titre}</span>
                         </li>
                       )}
                       {devisList.length > 1 && (
                         <li className="flex items-center gap-2">
                           <span className="h-2 w-2 rounded-full bg-yellow-500"></span>
-                          <span>Devis mis à jour: {devisList[1].nom}</span>
+                          <span className="text-gray-700">Devis mis à jour: {devisList[1].nom}</span>
                         </li>
                       )}
                       {devisList.length === 0 && clientsList.length === 0 && documentsList.length === 0 && (
-                        <li>Aucune activité récente</li>
+                        <li className="text-gray-600">Aucune activité récente</li>
                       )}
                     </ul>
                   )}
@@ -302,16 +331,16 @@ export default function AdminDashboard() {
         </TabsContent>
 
         <TabsContent value="devis">
-          <Card>
-            <CardHeader>
-              <CardTitle>Tous les devis</CardTitle>
-              <CardDescription>
+          <Card className="bg-white border border-gray-200 shadow-sm">
+            <CardHeader className="bg-gray-50 border-b border-gray-200">
+              <CardTitle className="text-gray-900">Tous les devis</CardTitle>
+              <CardDescription className="text-gray-600">
                 {tableExists
                   ? "Liste complète des devis reçus. Cliquez sur un devis pour voir les détails."
                   : "Données de démonstration. La table 'devis' n'existe pas dans la base de données."}
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-6">
               {loading ? (
                 <div className="flex h-40 items-center justify-center">
                   <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
@@ -324,12 +353,14 @@ export default function AdminDashboard() {
         </TabsContent>
 
         <TabsContent value="clients">
-          <Card>
-            <CardHeader>
-              <CardTitle>Tous les clients</CardTitle>
-              <CardDescription>Liste complète des clients enregistrés dans la base de données.</CardDescription>
+          <Card className="bg-white border border-gray-200 shadow-sm">
+            <CardHeader className="bg-gray-50 border-b border-gray-200">
+              <CardTitle className="text-gray-900">Tous les clients</CardTitle>
+              <CardDescription className="text-gray-600">
+                Liste complète des clients enregistrés dans la base de données.
+              </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-6">
               {loading ? (
                 <div className="flex h-40 items-center justify-center">
                   <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
@@ -338,8 +369,8 @@ export default function AdminDashboard() {
                 <ClientsTable clients={clientsList} />
               ) : (
                 <div className="py-4 text-center">
-                  <p className="text-muted-foreground">Aucun client trouvé dans la base de données.</p>
-                  <Button variant="outline" className="mt-4" asChild>
+                  <p className="text-gray-600">Aucun client trouvé dans la base de données.</p>
+                  <Button variant="outline" className="mt-4 border-gray-300 text-gray-700 hover:bg-gray-50" asChild>
                     <a href="/admin/clients/ajouter">Ajouter un client</a>
                   </Button>
                 </div>
@@ -349,12 +380,14 @@ export default function AdminDashboard() {
         </TabsContent>
 
         <TabsContent value="documents">
-          <Card>
-            <CardHeader>
-              <CardTitle>Tous les documents</CardTitle>
-              <CardDescription>Liste complète des documents enregistrés dans la base de données.</CardDescription>
+          <Card className="bg-white border border-gray-200 shadow-sm">
+            <CardHeader className="bg-gray-50 border-b border-gray-200">
+              <CardTitle className="text-gray-900">Tous les documents</CardTitle>
+              <CardDescription className="text-gray-600">
+                Liste complète des documents enregistrés dans la base de données.
+              </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-6">
               {loading ? (
                 <div className="flex h-40 items-center justify-center">
                   <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
@@ -363,8 +396,8 @@ export default function AdminDashboard() {
                 <DocumentsTable documents={documentsList} />
               ) : (
                 <div className="py-4 text-center">
-                  <p className="text-muted-foreground">Aucun document trouvé dans la base de données.</p>
-                  <Button variant="outline" className="mt-4" asChild>
+                  <p className="text-gray-600">Aucun document trouvé dans la base de données.</p>
+                  <Button variant="outline" className="mt-4 border-gray-300 text-gray-700 hover:bg-gray-50" asChild>
                     <a href="/admin/documents/ajouter">Ajouter un document</a>
                   </Button>
                 </div>
@@ -374,16 +407,16 @@ export default function AdminDashboard() {
         </TabsContent>
 
         <TabsContent value="statistiques">
-          <Card>
-            <CardHeader>
-              <CardTitle>Statistiques détaillées</CardTitle>
-              <CardDescription>
+          <Card className="bg-white border border-gray-200 shadow-sm">
+            <CardHeader className="bg-gray-50 border-b border-gray-200">
+              <CardTitle className="text-gray-900">Statistiques détaillées</CardTitle>
+              <CardDescription className="text-gray-600">
                 {tableExists
                   ? "Visualisation des données par différentes catégories."
                   : "Statistiques basées sur des données de démonstration."}
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-6">
               {loading ? (
                 <div className="flex h-80 items-center justify-center">
                   <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
@@ -391,41 +424,42 @@ export default function AdminDashboard() {
               ) : (
                 <div className="space-y-8">
                   <div>
-                    <h3 className="text-lg font-medium mb-4">Répartition des devis</h3>
+                    <h3 className="text-lg font-medium mb-4 text-gray-900">Répartition des devis</h3>
                     <DevisCharts devis={devisList} chartType="all" />
                   </div>
 
                   {clientsList.length > 0 && (
                     <div>
-                      <h3 className="text-lg font-medium mb-4">Répartition des clients par type</h3>
+                      <h3 className="text-lg font-medium mb-4 text-gray-900">Répartition des clients par type</h3>
                       <div className="h-40">
                         <div className="flex justify-around h-full items-end">
                           {["client", "prospect", "lead"].map((type) => {
                             const count = clientsList.filter((c) => c.type === type).length
-                            const noType = clientsList.filter((c) => !c.type).length
                             return (
                               <div key={type} className="flex flex-col items-center">
-                                <div className="text-sm font-medium">{count}</div>
+                                <div className="text-sm font-medium text-gray-900">{count}</div>
                                 <div
-                                  className="w-16 bg-primary rounded-t-md"
+                                  className="w-16 bg-blue-600 rounded-t-md"
                                   style={{
                                     height: `${Math.max(30, (count / clientsList.length) * 200)}px`,
                                   }}
                                 ></div>
-                                <div className="text-sm mt-2">{type}</div>
+                                <div className="text-sm mt-2 text-gray-700">{type}</div>
                               </div>
                             )
                           })}
                           {clientsList.some((c) => !c.type) && (
                             <div className="flex flex-col items-center">
-                              <div className="text-sm font-medium">{clientsList.filter((c) => !c.type).length}</div>
+                              <div className="text-sm font-medium text-gray-900">
+                                {clientsList.filter((c) => !c.type).length}
+                              </div>
                               <div
                                 className="w-16 bg-gray-300 rounded-t-md"
                                 style={{
                                   height: `${Math.max(30, (clientsList.filter((c) => !c.type).length / clientsList.length) * 200)}px`,
                                 }}
                               ></div>
-                              <div className="text-sm mt-2">Non défini</div>
+                              <div className="text-sm mt-2 text-gray-700">Non défini</div>
                             </div>
                           )}
                         </div>
@@ -435,21 +469,21 @@ export default function AdminDashboard() {
 
                   {documentsList.length > 0 && (
                     <div>
-                      <h3 className="text-lg font-medium mb-4">Répartition des documents par type</h3>
+                      <h3 className="text-lg font-medium mb-4 text-gray-900">Répartition des documents par type</h3>
                       <div className="h-40">
                         <div className="flex justify-around h-full items-end">
                           {Array.from(new Set(documentsList.map((d) => d.type))).map((type) => {
                             const count = documentsList.filter((d) => d.type === type).length
                             return (
                               <div key={type} className="flex flex-col items-center">
-                                <div className="text-sm font-medium">{count}</div>
+                                <div className="text-sm font-medium text-gray-900">{count}</div>
                                 <div
                                   className="w-16 bg-purple-500 rounded-t-md"
                                   style={{
                                     height: `${Math.max(30, (count / documentsList.length) * 200)}px`,
                                   }}
                                 ></div>
-                                <div className="text-sm mt-2">{type}</div>
+                                <div className="text-sm mt-2 text-gray-700">{type}</div>
                               </div>
                             )
                           })}
@@ -465,14 +499,14 @@ export default function AdminDashboard() {
 
         {!tableExists && (
           <TabsContent value="create-table">
-            <Card>
-              <CardHeader>
-                <CardTitle>Créer la table "devis"</CardTitle>
-                <CardDescription>
+            <Card className="bg-white border border-gray-200 shadow-sm">
+              <CardHeader className="bg-gray-50 border-b border-gray-200">
+                <CardTitle className="text-gray-900">Créer la table "devis"</CardTitle>
+                <CardDescription className="text-gray-600">
                   Exécutez le script SQL ci-dessous dans l'interface SQL de Supabase pour créer la table "devis".
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-6">
                 <div className="rounded-md bg-gray-900 p-4 text-sm text-gray-100">
                   <pre className="whitespace-pre-wrap">
                     {`-- Activer l'extension uuid-ossp si elle n'est pas déjà activée

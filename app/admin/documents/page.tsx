@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Input } from "@/components/ui/input"
@@ -26,6 +27,7 @@ import { supabaseAdmin, ensureClientFolder } from "@/lib/supabase"
 import { formatDate, formatFileSize } from "@/lib/utils"
 
 export default function DocumentsPage() {
+  const searchParams = useSearchParams()
   const [loading, setLoading] = useState(true)
   const [documents, setDocuments] = useState<any[]>([])
   const [filteredDocuments, setFilteredDocuments] = useState<any[]>([])
@@ -54,7 +56,18 @@ export default function DocumentsPage() {
   useEffect(() => {
     fetchDocuments()
     fetchClients()
-  }, [])
+
+    // Vérifier si on doit ouvrir le modal d'ajout automatiquement
+    const shouldOpenModal = searchParams.get("action") === "add"
+    const clientId = searchParams.get("client_id")
+
+    if (shouldOpenModal) {
+      setUploadDialogOpen(true)
+      if (clientId) {
+        setFormData((prev) => ({ ...prev, client_id: clientId }))
+      }
+    }
+  }, [searchParams])
 
   useEffect(() => {
     filterDocuments()
@@ -407,32 +420,32 @@ export default function DocumentsPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "en_attente":
-        return <Badge variant="secondary">En attente</Badge>
+        return <Badge className="bg-gray-200 text-gray-900">En attente</Badge>
       case "payé":
-        return <Badge variant="success">Payé</Badge>
+        return <Badge className="bg-blue-600 text-white">Payé</Badge>
       case "signé":
-        return <Badge variant="success">Signé</Badge>
+        return <Badge className="bg-blue-600 text-white">Signé</Badge>
       case "refusé":
-        return <Badge variant="destructive">Refusé</Badge>
+        return <Badge className="bg-red-600 text-white">Refusé</Badge>
       case "expiré":
-        return <Badge variant="outline">Expiré</Badge>
+        return <Badge className="bg-white text-gray-700 border border-gray-300">Expiré</Badge>
       case "brouillon":
-        return <Badge variant="outline">Brouillon</Badge>
+        return <Badge className="bg-white text-gray-700 border border-gray-300">Brouillon</Badge>
       default:
-        return <Badge>{status}</Badge>
+        return <Badge className="bg-gray-200 text-gray-900">{status}</Badge>
     }
   }
 
   const getTypeBadge = (type: string) => {
     switch (type) {
       case "facture":
-        return <Badge className="bg-blue-500">Facture</Badge>
+        return <Badge className="bg-blue-500 text-white">Facture</Badge>
       case "devis":
-        return <Badge className="bg-amber-500">Devis</Badge>
+        return <Badge className="bg-amber-500 text-white">Devis</Badge>
       case "contrat":
-        return <Badge className="bg-green-500">Contrat</Badge>
+        return <Badge className="bg-green-500 text-white">Contrat</Badge>
       default:
-        return <Badge className="bg-gray-500">Autre</Badge>
+        return <Badge className="bg-gray-500 text-white">Autre</Badge>
     }
   }
 
@@ -486,30 +499,30 @@ export default function DocumentsPage() {
 
   return (
     <div className="container max-w-7xl p-6">
-      <h1 className="mb-6 text-3xl font-bold">Gestion des documents</h1>
+      <h1 className="mb-6 text-3xl font-bold text-gray-900">Gestion des documents</h1>
 
       {!tableExists && (
-        <Alert className="mb-6 border-amber-200 bg-amber-50 text-amber-800">
-          <AlertTitle>Table manquante</AlertTitle>
-          <AlertDescription>
+        <Alert className="mb-6 border-amber-300 bg-amber-50">
+          <AlertTitle className="text-amber-800">Table manquante</AlertTitle>
+          <AlertDescription className="text-amber-700">
             La table "documents" n'existe pas dans la base de données. Veuillez exécuter le script d'initialisation.
           </AlertDescription>
         </Alert>
       )}
 
       {error && (
-        <Alert className="mb-6 border-red-200 bg-red-50 text-red-800">
-          <AlertTitle>Erreur</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
+        <Alert className="mb-6 border-red-300 bg-red-50">
+          <AlertTitle className="text-red-800">Erreur</AlertTitle>
+          <AlertDescription className="text-red-700">{error}</AlertDescription>
         </Alert>
       )}
 
-      <Card>
+      <Card className="bg-white border border-gray-200 shadow-sm">
         <CardHeader>
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <CardTitle>Documents</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-gray-900">Documents</CardTitle>
+              <CardDescription className="text-gray-600">
                 {tableExists
                   ? `${filteredDocuments.length} document(s) trouvé(s)`
                   : "La table 'documents' n'existe pas dans la base de données."}
@@ -518,7 +531,7 @@ export default function DocumentsPage() {
             <div className="flex flex-col gap-2 sm:flex-row">
               <Button
                 variant="outline"
-                className="w-full sm:w-auto"
+                className="w-full sm:w-auto border-gray-300 text-gray-700 hover:bg-gray-50"
                 onClick={initializeClientFolders}
                 disabled={loading}
               >
@@ -527,27 +540,34 @@ export default function DocumentsPage() {
               </Button>
               <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button className="w-full sm:w-auto" disabled={!tableExists || clients.length === 0}>
+                  <Button
+                    className="w-full sm:w-auto bg-blue-600 text-white hover:bg-blue-700"
+                    disabled={!tableExists || clients.length === 0}
+                  >
                     <FileUp className="mr-2 h-4 w-4" />
                     Ajouter un document
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[500px]">
                   <DialogHeader>
-                    <DialogTitle>Ajouter un nouveau document</DialogTitle>
-                    <DialogDescription>Téléchargez un document et associez-le à un client.</DialogDescription>
+                    <DialogTitle className="text-gray-900">Ajouter un nouveau document</DialogTitle>
+                    <DialogDescription className="text-gray-600">
+                      Téléchargez un document et associez-le à un client.
+                    </DialogDescription>
                   </DialogHeader>
                   <form onSubmit={handleUpload}>
                     <div className="grid gap-4 py-4">
                       <div className="grid gap-2">
-                        <Label htmlFor="client_id">Client</Label>
+                        <Label htmlFor="client_id" className="text-gray-900">
+                          Client
+                        </Label>
                         <Select
                           name="client_id"
                           value={formData.client_id}
                           onValueChange={(value) => handleSelectChange("client_id", value)}
                           required
                         >
-                          <SelectTrigger>
+                          <SelectTrigger className="border-gray-300">
                             <SelectValue placeholder="Sélectionner un client" />
                           </SelectTrigger>
                           <SelectContent>
@@ -560,28 +580,42 @@ export default function DocumentsPage() {
                         </Select>
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="titre">Titre</Label>
-                        <Input id="titre" name="titre" value={formData.titre} onChange={handleInputChange} required />
+                        <Label htmlFor="titre" className="text-gray-900">
+                          Titre
+                        </Label>
+                        <Input
+                          id="titre"
+                          name="titre"
+                          value={formData.titre}
+                          onChange={handleInputChange}
+                          required
+                          className="border-gray-300"
+                        />
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="description">Description</Label>
+                        <Label htmlFor="description" className="text-gray-900">
+                          Description
+                        </Label>
                         <Textarea
                           id="description"
                           name="description"
                           value={formData.description}
                           onChange={handleInputChange}
                           rows={3}
+                          className="border-gray-300"
                         />
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="grid gap-2">
-                          <Label htmlFor="type">Type</Label>
+                          <Label htmlFor="type" className="text-gray-900">
+                            Type
+                          </Label>
                           <Select
                             name="type"
                             value={formData.type}
                             onValueChange={(value) => handleSelectChange("type", value)}
                           >
-                            <SelectTrigger>
+                            <SelectTrigger className="border-gray-300">
                               <SelectValue placeholder="Type de document" />
                             </SelectTrigger>
                             <SelectContent>
@@ -593,13 +627,15 @@ export default function DocumentsPage() {
                           </Select>
                         </div>
                         <div className="grid gap-2">
-                          <Label htmlFor="statut">Statut</Label>
+                          <Label htmlFor="statut" className="text-gray-900">
+                            Statut
+                          </Label>
                           <Select
                             name="statut"
                             value={formData.statut}
                             onValueChange={(value) => handleSelectChange("statut", value)}
                           >
-                            <SelectTrigger>
+                            <SelectTrigger className="border-gray-300">
                               <SelectValue placeholder="Statut du document" />
                             </SelectTrigger>
                             <SelectContent>
@@ -614,7 +650,9 @@ export default function DocumentsPage() {
                         </div>
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="montant">Montant (€)</Label>
+                        <Label htmlFor="montant" className="text-gray-900">
+                          Montant (€)
+                        </Label>
                         <Input
                           id="montant"
                           name="montant"
@@ -622,11 +660,14 @@ export default function DocumentsPage() {
                           step="0.01"
                           value={formData.montant}
                           onChange={handleInputChange}
+                          className="border-gray-300"
                         />
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="file">Fichier</Label>
-                        <Input id="file" type="file" onChange={handleFileChange} required />
+                        <Label htmlFor="file" className="text-gray-900">
+                          Fichier
+                        </Label>
+                        <Input id="file" type="file" onChange={handleFileChange} required className="border-gray-300" />
                         {selectedFile && (
                           <p className="text-xs text-gray-500">
                             {selectedFile.name} ({formatFileSize(selectedFile.size)})
@@ -635,17 +676,21 @@ export default function DocumentsPage() {
                       </div>
                     </div>
                     {uploadError && (
-                      <Alert className="mb-4 border-red-200 bg-red-50 text-red-800">
-                        <AlertDescription>{uploadError}</AlertDescription>
+                      <Alert className="mb-4 border-red-300 bg-red-50">
+                        <AlertDescription className="text-red-700">{uploadError}</AlertDescription>
                       </Alert>
                     )}
                     {uploadSuccess && (
-                      <Alert className="mb-4 border-green-200 bg-green-50 text-green-800">
-                        <AlertDescription>Document téléchargé avec succès!</AlertDescription>
+                      <Alert className="mb-4 border-green-300 bg-green-50">
+                        <AlertDescription className="text-green-700">Document téléchargé avec succès!</AlertDescription>
                       </Alert>
                     )}
                     <div className="flex justify-end">
-                      <Button type="submit" disabled={uploadLoading}>
+                      <Button
+                        type="submit"
+                        disabled={uploadLoading}
+                        className="bg-blue-600 text-white hover:bg-blue-700"
+                      >
                         {uploadLoading ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -669,7 +714,7 @@ export default function DocumentsPage() {
               <Input
                 type="search"
                 placeholder="Rechercher un document..."
-                className="pl-8"
+                className="pl-8 border-gray-300"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -678,7 +723,7 @@ export default function DocumentsPage() {
               value={selectedClient || "all"}
               onValueChange={(value) => setSelectedClient(value === "all" ? null : value)}
             >
-              <SelectTrigger className="w-full sm:w-[200px]">
+              <SelectTrigger className="w-full sm:w-[200px] border-gray-300">
                 <SelectValue placeholder="Tous les clients" />
               </SelectTrigger>
               <SelectContent>
@@ -690,18 +735,47 @@ export default function DocumentsPage() {
                 ))}
               </SelectContent>
             </Select>
-            <Button variant="outline" onClick={fetchDocuments} className="w-full sm:w-auto">
+            <Button
+              variant="outline"
+              onClick={fetchDocuments}
+              className="w-full sm:w-auto border-gray-300 text-gray-700 hover:bg-gray-50"
+            >
               {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Actualiser"}
             </Button>
           </div>
 
           <Tabs defaultValue="tous" className="mb-4" onValueChange={setActiveTab}>
-            <TabsList>
-              <TabsTrigger value="tous">Tous</TabsTrigger>
-              <TabsTrigger value="facture">Factures</TabsTrigger>
-              <TabsTrigger value="devis">Devis</TabsTrigger>
-              <TabsTrigger value="contrat">Contrats</TabsTrigger>
-              <TabsTrigger value="autre">Autres</TabsTrigger>
+            <TabsList className="bg-gray-100">
+              <TabsTrigger
+                value="tous"
+                className="text-gray-700 data-[state=active]:bg-white data-[state=active]:text-gray-900"
+              >
+                Tous
+              </TabsTrigger>
+              <TabsTrigger
+                value="facture"
+                className="text-gray-700 data-[state=active]:bg-white data-[state=active]:text-gray-900"
+              >
+                Factures
+              </TabsTrigger>
+              <TabsTrigger
+                value="devis"
+                className="text-gray-700 data-[state=active]:bg-white data-[state=active]:text-gray-900"
+              >
+                Devis
+              </TabsTrigger>
+              <TabsTrigger
+                value="contrat"
+                className="text-gray-700 data-[state=active]:bg-white data-[state=active]:text-gray-900"
+              >
+                Contrats
+              </TabsTrigger>
+              <TabsTrigger
+                value="autre"
+                className="text-gray-700 data-[state=active]:bg-white data-[state=active]:text-gray-900"
+              >
+                Autres
+              </TabsTrigger>
             </TabsList>
           </Tabs>
 
@@ -710,35 +784,35 @@ export default function DocumentsPage() {
               <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
             </div>
           ) : (
-            <div className="rounded-md border">
+            <div className="rounded-md border border-gray-200">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Titre</TableHead>
-                    <TableHead>Client</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Statut</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                  <TableRow className="bg-gray-50">
+                    <TableHead className="text-gray-900">Titre</TableHead>
+                    <TableHead className="text-gray-900">Client</TableHead>
+                    <TableHead className="text-gray-900">Type</TableHead>
+                    <TableHead className="text-gray-900">Statut</TableHead>
+                    <TableHead className="text-gray-900">Date</TableHead>
+                    <TableHead className="text-right text-gray-900">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredDocuments.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="h-24 text-center">
+                      <TableCell colSpan={6} className="h-24 text-center text-gray-600">
                         Aucun document trouvé
                       </TableCell>
                     </TableRow>
                   ) : (
                     filteredDocuments.map((document) => (
                       <TableRow key={document.id} className="hover:bg-gray-50">
-                        <TableCell className="font-medium">{document.titre}</TableCell>
-                        <TableCell>
+                        <TableCell className="font-medium text-gray-900">{document.titre}</TableCell>
+                        <TableCell className="text-gray-600">
                           {document.clients?.nom_entreprise || document.clients?.nom || "Client inconnu"}
                         </TableCell>
                         <TableCell>{getTypeBadge(document.type)}</TableCell>
                         <TableCell>{getStatusBadge(document.statut)}</TableCell>
-                        <TableCell>{formatDate(document.date_creation)}</TableCell>
+                        <TableCell className="text-gray-600">{formatDate(document.date_creation)}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
                             <Button
@@ -747,6 +821,7 @@ export default function DocumentsPage() {
                               onClick={() => handleViewDocument(document.fichier_path)}
                               title="Voir"
                               disabled={!document.fichier_path}
+                              className="text-gray-600 hover:text-gray-900"
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
@@ -756,6 +831,7 @@ export default function DocumentsPage() {
                               onClick={() => handleDownloadDocument(document.fichier_path, document.fichier_nom)}
                               title="Télécharger"
                               disabled={!document.fichier_path}
+                              className="text-gray-600 hover:text-gray-900"
                             >
                               <Download className="h-4 w-4" />
                             </Button>
@@ -764,8 +840,9 @@ export default function DocumentsPage() {
                               size="icon"
                               onClick={() => handleDeleteDocument(document.id)}
                               title="Supprimer"
+                              className="text-red-500 hover:text-red-700"
                             >
-                              <Trash2 className="h-4 w-4 text-red-500" />
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
                         </TableCell>
@@ -780,10 +857,10 @@ export default function DocumentsPage() {
       </Card>
 
       {!tableExists && (
-        <Card className="mt-6">
+        <Card className="mt-6 bg-white border border-gray-200 shadow-sm">
           <CardHeader>
-            <CardTitle>Créer les tables nécessaires</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-gray-900">Créer les tables nécessaires</CardTitle>
+            <CardDescription className="text-gray-600">
               Exécutez le script SQL ci-dessous dans l'interface SQL de Supabase pour créer les tables nécessaires.
             </CardDescription>
           </CardHeader>

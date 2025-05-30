@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { BarChart3, FileText, Home, LogOut, Settings, User, File } from "lucide-react"
+import { BarChart3, FileText, Home, LogOut, User, File } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export function AdminHeader() {
@@ -16,38 +16,45 @@ export function AdminHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-10 border-b bg-white">
+    <header className="sticky top-0 z-10 border-b bg-white shadow-sm">
       <div className="flex h-16 items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-4">
-          <Link href="/admin" className="flex items-center gap-2 font-semibold">
+          <Link href="/admin" className="flex items-center gap-2 font-semibold text-gray-900 hover:text-blue-600">
             <BarChart3 className="h-5 w-5" />
             <span>Admin Dashboard</span>
           </Link>
           <nav className="hidden md:flex items-center gap-6">
-            <Link href="/admin" className="text-sm font-medium hover:underline">
+            <Link href="/admin" className="text-sm font-medium text-gray-700 hover:text-blue-600 hover:underline">
               <Home className="mr-1 inline-block h-4 w-4" />
               Accueil
             </Link>
-            <Link href="/admin/devis" className="text-sm font-medium hover:underline">
+            <Link href="/admin/devis" className="text-sm font-medium text-gray-700 hover:text-blue-600 hover:underline">
               <FileText className="mr-1 inline-block h-4 w-4" />
               Devis
             </Link>
-            <Link href="/admin/documents" className="text-sm font-medium hover:underline">
+            <Link
+              href="/admin/documents"
+              className="text-sm font-medium text-gray-700 hover:text-blue-600 hover:underline"
+            >
               <File className="mr-1 inline-block h-4 w-4" />
               Documents
             </Link>
-            <Link href="/admin/clients" className="text-sm font-medium hover:underline">
+            <Link
+              href="/admin/clients"
+              className="text-sm font-medium text-gray-700 hover:text-blue-600 hover:underline"
+            >
               <User className="mr-1 inline-block h-4 w-4" />
               Clients
-            </Link>
-            <Link href="/admin/settings" className="text-sm font-medium hover:underline">
-              <Settings className="mr-1 inline-block h-4 w-4" />
-              Paramètres
             </Link>
           </nav>
         </div>
         <div className="flex items-center gap-4">
-          <Button variant="outline" size="sm" onClick={handleLogout}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleLogout}
+            className="border-gray-300 text-gray-700 hover:bg-gray-50"
+          >
             <LogOut className="mr-1 h-4 w-4" />
             Déconnexion
           </Button>
