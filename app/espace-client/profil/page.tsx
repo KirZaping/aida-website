@@ -16,7 +16,6 @@ export default async function ProfilePage() {
     redirect("/espace-client/login")
   }
 
-  // Récupérer le profil du client
   const { profile, error } = await getClientProfile(session.id)
 
   return (

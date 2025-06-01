@@ -1,7 +1,7 @@
 import type React from "react"
 import { cookies } from "next/headers"
 import Link from "next/link"
-import { User, FileText, Home } from "lucide-react"
+import { User, FileText, Home, Building } from "lucide-react"
 
 import { getClientSession } from "../actions/client-auth"
 import { LogoutButton } from "./components/logout-button"
@@ -66,6 +66,22 @@ export default async function EspaceClientLayout({
             >
               <User className="h-5 w-5 text-gray-500" />
               <span>Profil entreprise</span>
+            </Link>
+
+            {/* Ajout de vos deux nouvelles pages : */}
+            <Link
+              href="/espace-client/info-contrat"
+              className="flex items-center space-x-2 px-4 py-2 rounded-md hover:bg-gray-100 transition-colors"
+            >
+              <Building className="h-5 w-5 text-gray-500" />
+              <span>Info contrat</span>
+            </Link>
+            <Link
+              href="/espace-client/configuration"
+              className="flex items-center space-x-2 px-4 py-2 rounded-md hover:bg-gray-100 transition-colors"
+            >
+              <User className="h-5 w-5 text-gray-500" />
+              <span>Configuration</span>
             </Link>
           </nav>
         </aside>
