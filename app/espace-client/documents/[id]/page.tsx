@@ -228,7 +228,6 @@ export default async function DocumentPage({
             </CardContent>
           </Card>
 
-          {/* Nouveau bloc Partage */}
           <Card>
             <CardHeader>
               <CardTitle>Partage</CardTitle>
@@ -264,12 +263,7 @@ export default async function DocumentPage({
                 </p>
               )}
             </CardContent>
-            <CardFooter>
-              <Button variant="outline" className="w-full">
-                <Share2 className="mr-2 h-4 w-4" />
-                Partager
-              </Button>
-            </CardFooter>
+            
           </Card>
         </div>
       </div>

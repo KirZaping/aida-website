@@ -53,6 +53,16 @@ export default async function EspaceClientLayout({
               <Home className="h-5 w-5 text-gray-500" />
               <span>Tableau de bord</span>
             </Link>
+
+            <Link
+              href="/espace-client/info-contrat"
+              className="flex items-center space-x-2 px-4 py-2 rounded-md hover:bg-gray-100 transition-colors"
+            >
+              <Building className="h-5 w-5 text-gray-500" />
+              <span>Projets</span>
+            </Link>
+
+            
             <Link
               href="/espace-client/documents"
               className="flex items-center space-x-2 px-4 py-2 rounded-md hover:bg-gray-100 transition-colors"
@@ -68,14 +78,7 @@ export default async function EspaceClientLayout({
               <span>Profil entreprise</span>
             </Link>
 
-            {/* Ajout de vos deux nouvelles pages : */}
-            <Link
-              href="/espace-client/info-contrat"
-              className="flex items-center space-x-2 px-4 py-2 rounded-md hover:bg-gray-100 transition-colors"
-            >
-              <Building className="h-5 w-5 text-gray-500" />
-              <span>Info contrat</span>
-            </Link>
+            
             <Link
               href="/espace-client/configuration"
               className="flex items-center space-x-2 px-4 py-2 rounded-md hover:bg-gray-100 transition-colors"
