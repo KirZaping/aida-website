@@ -1,3 +1,4 @@
+// app/espace-client/documents/page.tsx
 import { cookies } from "next/headers"
 import Link from "next/link"
 import { Download, FileText, Search } from "lucide-react"
@@ -7,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
+
 import { getClientSession } from "@/app/actions/client-auth"
 import { getClientDocuments } from "@/app/actions/documents"
 
@@ -14,14 +16,10 @@ export default async function DocumentsPage() {
   const cookieStore = cookies()
   const session = await getClientSession(cookieStore)
 
-  if (!session) {
-    return null // Le layout redirigera vers la page de connexion
-  }
+  if (!session) return null
 
-  // Récupérer les documents du client
   const { documents, error } = await getClientDocuments(session.id)
 
-  // Fonction pour obtenir la couleur du badge en fonction du statut
   const getStatusColor = (status: string) => {
     switch (status) {
       case "en_attente":
@@ -39,7 +37,6 @@ export default async function DocumentsPage() {
     }
   }
 
-  // Fonction pour formater le statut
   const formatStatus = (status: string) => {
     switch (status) {
       case "en_attente":
@@ -59,14 +56,9 @@ export default async function DocumentsPage() {
     }
   }
 
-  // Grouper les documents par type
   const documentsByType: Record<string, any[]> = {}
-
   documents?.forEach((doc) => {
-    if (!documentsByType[doc.type]) {
-      documentsByType[doc.type] = []
-    }
-    documentsByType[doc.type].push(doc)
+    (documentsByType[doc.type] ??= []).push(doc)
   })
 
   return (
@@ -95,7 +87,13 @@ export default async function DocumentsPage() {
             <TabsTrigger value="tous">Tous</TabsTrigger>
             {Object.keys(documentsByType).map((type) => (
               <TabsTrigger key={type} value={type}>
-                {type === "facture" ? "Factures" : type === "contrat" ? "Contrats" : type === "devis" ? "Devis" : type}
+                {type === "facture"
+                  ? "Factures"
+                  : type === "contrat"
+                  ? "Contrats"
+                  : type === "devis"
+                  ? "Devis"
+                  : type}
               </TabsTrigger>
             ))}
           </TabsList>
@@ -103,7 +101,12 @@ export default async function DocumentsPage() {
           <TabsContent value="tous">
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {documents.map((doc) => (
-                <DocumentCard key={doc.id} document={doc} getStatusColor={getStatusColor} formatStatus={formatStatus} />
+                <DocumentCard
+                  key={doc.id}
+                  document={doc}
+                  getStatusColor={getStatusColor}
+                  formatStatus={formatStatus}
+                />
               ))}
             </div>
           </TabsContent>
@@ -148,9 +151,13 @@ function DocumentCard({
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
           <CardTitle className="text-md">{document.titre}</CardTitle>
-          <Badge className={getStatusColor(document.statut)}>{formatStatus(document.statut)}</Badge>
+          <Badge className={getStatusColor(document.statut)}>
+            {formatStatus(document.statut)}
+          </Badge>
         </div>
-        <CardDescription>{new Date(document.date_creation).toLocaleDateString("fr-FR")}</CardDescription>
+        <CardDescription>
+          {new Date(document.date_creation).toLocaleDateString("fr-FR")}
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <p className="text-sm text-muted-foreground mb-4">
@@ -164,11 +171,19 @@ function DocumentCard({
               Consulter
             </Link>
           </Button>
+
+          {/* ← ici on passe par la même route, avec download=true */}
           <Button variant="outline" size="sm" asChild>
-            <a href={document.fichier_path} download={document.fichier_nom}>
+            <Link
+              href={{
+                pathname: `/espace-client/documents/${document.id}`,
+                query: { download: "true" },
+              }}
+              prefetch={false}
+            >
               <Download className="h-4 w-4 mr-1" />
               Télécharger
-            </a>
+            </Link>
           </Button>
         </div>
       </CardContent>

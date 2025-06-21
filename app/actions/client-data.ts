@@ -121,3 +121,61 @@ export async function updateClientProfile(clientId: string, profileData: any) {
     return { success: false, error: "Une erreur est survenue" }
   }
 }
+
+
+
+
+export async function getClientCollaborators(clientId: string) {
+  try {
+    if (!clientId || clientId.trim() === "") {
+      return { collaborators: [], error: "ID client non valide" }
+    }
+
+    // Vérifier que la table existe
+    const { error: tableError } = await supabaseAdmin
+      .from("collaborateurs")
+      .select("id")
+      .limit(1)
+    if (tableError) {
+      console.error("Table collaborateurs inexistante:", tableError)
+      return { collaborators: [], error: "La table collaborateurs n'existe pas" }
+    }
+
+    // Récupérer les collaborateurs
+    const { data, error } = await supabaseAdmin
+      .from("collaborateurs")
+      .select("id, client_id, email, date_invitation, statut_invitation")
+      .eq("client_id", clientId)
+      .order("date_invitation", { ascending: false })
+
+    if (error) {
+      console.error("Erreur récupération collaborateurs:", error)
+      return { collaborators: [], error: "Impossible de récupérer les collaborateurs" }
+    }
+
+    return { collaborators: data || [], error: null }
+  } catch (err) {
+    console.error("Erreur getClientCollaborators:", err)
+    return { collaborators: [], error: "Une erreur est survenue" }
+  }
+}
+
+
+export async function deleteCollaborator(collaboratorId: string) {
+  try {
+    const { error } = await supabaseAdmin
+      .from("collaborateurs")
+      .delete()
+      .eq("id", collaboratorId)
+
+    if (error) {
+      console.error("Erreur suppression collaborateur:", error)
+      return { success: false, error: "Impossible de supprimer le collaborateur" }
+    }
+    return { success: true, error: null }
+  } catch (err) {
+    console.error("deleteCollaborator:", err)
+    return { success: false, error: "Une erreur est survenue" }
+  }
+}
+

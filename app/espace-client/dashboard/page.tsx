@@ -24,8 +24,8 @@ export default async function DashboardPage() {
   const recentDocuments = documents?.slice(0, 3) || []
   const documentsCount = documents?.length || 0
   const projectsInProgress = projects?.filter((p) => p.statut === "en_cours")?.length || 0
-  const projectsCompleted = projects?.filter((p) => p.statut === "terminé")?.length || 0
-  const pendingInvoices = invoices?.filter((i) => i.statut === "en_attente")?.length || 0
+  const projectsCompletedCount = projects?.filter((p) => p.statut === "terminé")?.length || 0
+  const pendingInvoicesCount = invoices?.filter((i) => i.statut === "en_attente")?.length || 0
 
   return (
     <div className="space-y-6">
@@ -62,7 +62,7 @@ export default async function DashboardPage() {
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{projectsCompleted}</div>
+            <div className="text-2xl font-bold">{projectsCompletedCount}</div>
             <p className="text-xs text-muted-foreground">Projets livrés</p>
           </CardContent>
         </Card>
@@ -72,7 +72,7 @@ export default async function DashboardPage() {
             <AlertCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{pendingInvoices}</div>
+            <div className="text-2xl font-bold">{pendingInvoicesCount}</div>
             <p className="text-xs text-muted-foreground">Factures à régler</p>
           </CardContent>
         </Card>
@@ -95,7 +95,9 @@ export default async function DashboardPage() {
               <Card key={doc.id}>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-md">{doc.titre || doc.nom}</CardTitle>
-                  <CardDescription>{new Date(doc.date_creation).toLocaleDateString("fr-FR")}</CardDescription>
+                  <CardDescription>
+                    {new Date(doc.date_creation).toLocaleDateString("fr-FR")}
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="pb-2">
                   <p className="text-sm text-muted-foreground">
@@ -104,7 +106,10 @@ export default async function DashboardPage() {
                   </p>
                 </CardContent>
                 <div className="px-6 pb-4">
-                  <Link href={`/espace-client/documents/${doc.id}`} className="text-sm text-primary hover:underline">
+                  <Link
+                    href={`/espace-client/documents/${doc.id}`}
+                    className="text-sm text-primary hover:underline"
+                  >
                     Voir le document
                   </Link>
                 </div>
@@ -120,7 +125,10 @@ export default async function DashboardPage() {
         )}
         {recentDocuments.length > 0 && (
           <div className="mt-4 text-right">
-            <Link href="/espace-client/documents" className="text-sm text-primary hover:underline">
+            <Link
+              href="/espace-client/documents"
+              className="text-sm text-primary hover:underline"
+            >
               Voir tous les documents →
             </Link>
           </div>
@@ -133,10 +141,12 @@ export default async function DashboardPage() {
         {projectsError ? (
           <Card>
             <CardContent className="pt-6">
-              <p className="text-muted-foreground">Impossible de charger les projets. Veuillez réessayer plus tard.</p>
+              <p className="text-muted-foreground">
+                Impossible de charger les projets. Veuillez réessayer plus tard.
+              </p>
             </CardContent>
           </Card>
-        ) : projects && projects.filter((p) => p.statut === "en_cours").length > 0 ? (
+        ) : projects?.filter((p) => p.statut === "en_cours").length > 0 ? (
           <div className="space-y-4">
             {projects
               .filter((p) => p.statut === "en_cours")
@@ -148,7 +158,8 @@ export default async function DashboardPage() {
                       <div>
                         <h3 className="font-semibold">{project.nom}</h3>
                         <p className="text-sm text-muted-foreground mt-1">
-                          {project.description?.substring(0, 150) || "Aucune description"}
+                          {project.description?.substring(0, 150) ||
+                            "Aucune description"}
                           {project.description?.length > 150 ? "..." : ""}
                         </p>
                       </div>
@@ -163,7 +174,114 @@ export default async function DashboardPage() {
         ) : (
           <Card>
             <CardContent className="pt-6">
-              <p className="text-muted-foreground">Aucun projet en cours pour le moment.</p>
+              <p className="text-muted-foreground">
+                Aucun projet en cours pour le moment.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* Projets terminés */}
+      <div>
+        <h2 className="text-xl font-semibold mb-4">Projets terminés</h2>
+        {projectsError ? (
+          <Card>
+            <CardContent className="pt-6">
+              <p className="text-muted-foreground">
+                Impossible de charger les projets terminés. Veuillez réessayer plus
+                tard.
+              </p>
+            </CardContent>
+          </Card>
+        ) : projects?.filter((p) => p.statut === "terminé").length > 0 ? (
+          <div className="space-y-4">
+            {projects
+              .filter((p) => p.statut === "terminé")
+              .slice(0, 3)
+              .map((project) => (
+                <Card key={project.id}>
+                  <CardContent className="p-6">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-semibold">{project.nom}</h3>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {project.description?.substring(0, 150) ||
+                            "Aucune description"}
+                          {project.description?.length > 150 ? "..." : ""}
+                        </p>
+                      </div>
+                      <div className="bg-green-100 text-green-600 text-xs px-2 py-1 rounded-full">
+                        Terminé
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+          </div>
+        ) : (
+          <Card>
+            <CardContent className="pt-6">
+              <p className="text-muted-foreground">
+                Aucun projet terminé pour le moment.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* Factures en attente */}
+      <div>
+        <h2 className="text-xl font-semibold mb-4">Factures en attente</h2>
+        {invoicesError ? (
+          <Card>
+            <CardContent className="pt-6">
+              <p className="text-muted-foreground">
+                Impossible de charger les factures. Veuillez réessayer plus tard.
+              </p>
+            </CardContent>
+          </Card>
+        ) : invoices?.filter((i) => i.statut === "en_attente").length > 0 ? (
+          <div className="space-y-4">
+            {invoices
+              .filter((i) => i.statut === "en_attente")
+              .slice(0, 3)
+              .map((invoice) => (
+                <Card key={invoice.id}>
+                  <CardContent className="p-6">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <h3 className="font-semibold">
+                          Facture #{invoice.numero || invoice.id}
+                        </h3>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Émise le{" "}
+                          {invoice.date_emission
+                            ? new Date(invoice.date_emission).toLocaleDateString(
+                                "fr-FR"
+                              )
+                            : "—"}
+                        </p>
+                      </div>
+                      <div className="font-bold">
+                        {invoice.montant != null
+                          ? new Intl.NumberFormat("fr-FR", {
+                              style: "currency",
+                              currency: "EUR",
+                            }).format(invoice.montant)
+                          : "—"}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+          </div>
+        ) : (
+          <Card>
+            <CardContent className="pt-6">
+              <p className="text-muted-foreground">
+                Aucune facture en attente pour le moment.
+              </p>
             </CardContent>
           </Card>
         )}
