@@ -57,36 +57,6 @@ export default function Home() {
 
   const contactFormRef = useRef<HTMLFormElement>(null)
 
-  useEffect(() => {
-    const mouseMove = (e: MouseEvent) => {
-      setMousePosition({
-        x: e.clientX,
-        y: e.clientY,
-      })
-    }
-
-    window.addEventListener("mousemove", mouseMove)
-
-    return () => {
-      window.removeEventListener("mousemove", mouseMove)
-    }
-  }, [])
-
-  const variants = {
-    default: {
-      x: mousePosition.x - 16,
-      y: mousePosition.y - 16,
-      opacity: 0.5,
-    },
-    button: {
-      x: mousePosition.x - 16,
-      y: mousePosition.y - 16,
-      height: 64,
-      width: 64,
-      opacity: 0.1,
-      backgroundColor: "#3b82f6",
-    },
-  }
 
   const enterButton = () => setCursorVariant("button")
   const leaveButton = () => setCursorVariant("default")
@@ -137,12 +107,7 @@ export default function Home() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <motion.div
-        className="fixed top-0 left-0 w-8 h-8 rounded-full bg-blue-500 z-50 pointer-events-none hidden md:block"
-        variants={variants}
-        animate={cursorVariant}
-        transition={{ type: "spring", stiffness: 500, damping: 28 }}
-      />
+      
 
       {/* Header */}
       <motion.header
