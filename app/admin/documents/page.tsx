@@ -407,17 +407,17 @@ export default function DocumentsPage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "en_attente":
-        return <Badge variant="secondary">En attente</Badge>
+        return <Badge variant="waiting">En attente</Badge>
       case "payé":
-        return <Badge variant="success">Payé</Badge>
+        return <Badge variant="paid">Payé</Badge>
       case "signé":
-        return <Badge variant="success">Signé</Badge>
+        return <Badge variant="signed">Signé</Badge>
       case "refusé":
-        return <Badge variant="destructive">Refusé</Badge>
+        return <Badge variant="refused">Refusé</Badge>
       case "expiré":
-        return <Badge variant="outline">Expiré</Badge>
+        return <Badge variant="expired">Expiré</Badge>
       case "brouillon":
-        return <Badge variant="outline">Brouillon</Badge>
+        return <Badge variant="draft">Brouillon</Badge>
       default:
         return <Badge>{status}</Badge>
     }

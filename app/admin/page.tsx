@@ -12,8 +12,13 @@ import { Loader2, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ClientsTable } from "./components/clients-table"
 import { DocumentsTable } from "./components/documents-table"
+import { getRecentActivity } from "./actions/getRecentActivity"
+import { RecentTable } from "./components/recent-table"
+
+
 
 export default function AdminDashboard() {
+  const [activities, setActivities] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [devisList, setDevisList] = useState<any[]>([])
   const [clientsList, setClientsList] = useState<any[]>([])
@@ -39,23 +44,32 @@ export default function AdminDashboard() {
       setLoading(true)
       setError(null)
 
-      // Récupérer les devis depuis Supabase
       const { data: devisData, error: devisError } = await supabaseAdmin
         .from("devis")
         .select("*")
         .order("date_creation", { ascending: false })
 
-      // Récupérer les clients depuis Supabase
+        console.log("devisData =", devisData, "err =", devisError)
+
+
       const { data: clientsData, error: clientsError } = await supabaseAdmin
         .from("clients")
         .select("*")
         .order("date_creation", { ascending: false })
 
-      // Récupérer les documents depuis Supabase
+        console.log("clientsData =", clientsData, "err =", clientsError)
+
+
       const { data: documentsData, error: documentsError } = await supabaseAdmin
         .from("documents")
         .select("*")
         .order("date_creation", { ascending: false })
+
+        console.log("documentsData =", documentsData, "err =", documentsError)
+
+
+      const recent = await getRecentActivity(10)
+      setActivities(recent)
 
       if (devisError) {
         console.error("Erreur lors de la récupération des devis:", devisError)
@@ -99,6 +113,7 @@ export default function AdminDashboard() {
     } catch (err) {
       console.error("Exception lors de la récupération des données:", err)
       setError(`Exception: ${err instanceof Error ? err.message : "Erreur inconnue"}`)
+      setActivities([])
 
       // Utiliser des données de démonstration en cas d'erreur
       const demoData = generateDemoData()
@@ -108,6 +123,8 @@ export default function AdminDashboard() {
       setLoading(false)
     }
   }
+
+
 
   const calculateStats = (devisData: any[], clientsData: any[], documentsData: any[]) => {
     const nouveaux = devisData.filter((d) => d.statut === "nouveau").length
@@ -246,7 +263,7 @@ export default function AdminDashboard() {
                     <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
                   </div>
                 ) : (
-                  <div className="h-40">
+                  <div className="min-h-[240px]">
                     <DevisCharts devis={devisList} chartType="status" />
                   </div>
                 )}
@@ -256,48 +273,22 @@ export default function AdminDashboard() {
             <Card className="w-full">
               <CardHeader>
                 <CardTitle>Activité récente</CardTitle>
-                <CardDescription>Dernières actions effectuées</CardDescription>
+                <CardDescription>Les 10 dernières actions enregistrées</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {loading ? (
-                    <div className="flex h-40 items-center justify-center">
-                      <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-                    </div>
-                  ) : (
-                    <ul className="space-y-2 text-sm">
-                      {devisList.length > 0 && (
-                        <li className="flex items-center gap-2">
-                          <span className="h-2 w-2 rounded-full bg-blue-500"></span>
-                          <span>Nouveau devis de {devisList[0].nom}</span>
-                        </li>
-                      )}
-                      {clientsList.length > 0 && (
-                        <li className="flex items-center gap-2">
-                          <span className="h-2 w-2 rounded-full bg-green-500"></span>
-                          <span>Nouveau client: {clientsList[0].nom}</span>
-                        </li>
-                      )}
-                      {documentsList.length > 0 && (
-                        <li className="flex items-center gap-2">
-                          <span className="h-2 w-2 rounded-full bg-purple-500"></span>
-                          <span>Nouveau document: {documentsList[0].titre}</span>
-                        </li>
-                      )}
-                      {devisList.length > 1 && (
-                        <li className="flex items-center gap-2">
-                          <span className="h-2 w-2 rounded-full bg-yellow-500"></span>
-                          <span>Devis mis à jour: {devisList[1].nom}</span>
-                        </li>
-                      )}
-                      {devisList.length === 0 && clientsList.length === 0 && documentsList.length === 0 && (
-                        <li>Aucune activité récente</li>
-                      )}
-                    </ul>
-                  )}
-                </div>
+                {loading ? (
+                  <div className="flex h-40 items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                  </div>
+                ) : activities.length > 0 ? (
+                  <RecentTable activities={activities} />
+                ) : (
+                  <p className="text-sm text-muted-foreground py-4">Aucune activité récente.</p>
+                )}
               </CardContent>
             </Card>
+
+
           </div>
         </TabsContent>
 
@@ -374,94 +365,97 @@ export default function AdminDashboard() {
         </TabsContent>
 
         <TabsContent value="statistiques">
-          <Card>
-            <CardHeader>
-              <CardTitle>Statistiques détaillées</CardTitle>
-              <CardDescription>
-                {tableExists
-                  ? "Visualisation des données par différentes catégories."
-                  : "Statistiques basées sur des données de démonstration."}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="flex h-80 items-center justify-center">
-                  <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-                </div>
-              ) : (
-                <div className="space-y-8">
-                  <div>
-                    <h3 className="text-lg font-medium mb-4">Répartition des devis</h3>
-                    <DevisCharts devis={devisList} chartType="all" />
+  <Card>
+    <CardHeader>
+      <CardTitle>Statistiques détaillées</CardTitle>
+      <CardDescription>
+        {tableExists
+          ? "Visualisation des données par différentes catégories."
+          : "Statistiques basées sur des données de démonstration."}
+      </CardDescription>
+    </CardHeader>
+
+    <CardContent>
+      {loading ? (
+        <div className="flex h-80 items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+        </div>
+      ) : (
+        <div className="space-y-10">
+
+          {/* --- Devis par statut (pie) ----------------------------------- */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Répartition des devis</h3>
+            {/* min-h pour éviter le clipping, relative pour Chart.js */}
+            <div className="relative w-full min-h-[300px]">
+              <DevisCharts devis={devisList} chartType="all" />
+            </div>
+          </div>
+
+          {/* --- Clients par type (barres horizontales) ------------------- */}
+          {clientsList.length > 0 && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium">Répartition des contacts par type</h3>
+
+              {["client", "prospect", "lead"].map((type) => {
+                const count = clientsList.filter((c) => c.type === type).length
+                if (count === 0) return null
+                const pct = (count / clientsList.length) * 100
+                const color =
+                  type === "client"
+                    ? "bg-blue-500"
+                    : type === "prospect"
+                    ? "bg-amber-500"
+                    : "bg-emerald-500"
+
+                return (
+                  <div key={type} className="flex items-center gap-4">
+                    <span className="w-24 text-sm capitalize">{type}</span>
+                    <div className="flex-1 h-4 rounded bg-gray-200 overflow-hidden">
+                      <div className={`h-4 ${color}`} style={{ width: `${pct}%` }} />
+                    </div>
+                    <span className="w-10 text-right text-sm">{count}</span>
                   </div>
+                )
+              })}
+            </div>
+          )}
 
-                  {clientsList.length > 0 && (
-                    <div>
-                      <h3 className="text-lg font-medium mb-4">Répartition des clients par type</h3>
-                      <div className="h-40">
-                        <div className="flex justify-around h-full items-end">
-                          {["client", "prospect", "lead"].map((type) => {
-                            const count = clientsList.filter((c) => c.type === type).length
-                            const noType = clientsList.filter((c) => !c.type).length
-                            return (
-                              <div key={type} className="flex flex-col items-center">
-                                <div className="text-sm font-medium">{count}</div>
-                                <div
-                                  className="w-16 bg-primary rounded-t-md"
-                                  style={{
-                                    height: `${Math.max(30, (count / clientsList.length) * 200)}px`,
-                                  }}
-                                ></div>
-                                <div className="text-sm mt-2">{type}</div>
-                              </div>
-                            )
-                          })}
-                          {clientsList.some((c) => !c.type) && (
-                            <div className="flex flex-col items-center">
-                              <div className="text-sm font-medium">{clientsList.filter((c) => !c.type).length}</div>
-                              <div
-                                className="w-16 bg-gray-300 rounded-t-md"
-                                style={{
-                                  height: `${Math.max(30, (clientsList.filter((c) => !c.type).length / clientsList.length) * 200)}px`,
-                                }}
-                              ></div>
-                              <div className="text-sm mt-2">Non défini</div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
+          {/* --- Documents par type -------------------------------------- */}
+          {documentsList.length > 0 && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-medium">Répartition des documents par type</h3>
 
-                  {documentsList.length > 0 && (
-                    <div>
-                      <h3 className="text-lg font-medium mb-4">Répartition des documents par type</h3>
-                      <div className="h-40">
-                        <div className="flex justify-around h-full items-end">
-                          {Array.from(new Set(documentsList.map((d) => d.type))).map((type) => {
-                            const count = documentsList.filter((d) => d.type === type).length
-                            return (
-                              <div key={type} className="flex flex-col items-center">
-                                <div className="text-sm font-medium">{count}</div>
-                                <div
-                                  className="w-16 bg-purple-500 rounded-t-md"
-                                  style={{
-                                    height: `${Math.max(30, (count / documentsList.length) * 200)}px`,
-                                  }}
-                                ></div>
-                                <div className="text-sm mt-2">{type}</div>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </div>
+              {Array.from(new Set(documentsList.map((d) => d.type))).map((type) => {
+                const count = documentsList.filter((d) => d.type === type).length
+                const pct = (count / documentsList.length) * 100
+                const color =
+                  type === "facture"
+                    ? "bg-purple-500"
+                    : type === "devis"
+                    ? "bg-cyan-500"
+                    : type === "contrat"
+                    ? "bg-green-500"
+                    : "bg-gray-500"
+
+                return (
+                  <div key={type} className="flex items-center gap-4">
+                    <span className="w-24 text-sm capitalize">{type}</span>
+                    <div className="flex-1 h-4 rounded bg-gray-200 overflow-hidden">
+                      <div className={`h-4 ${color}`} style={{ width: `${pct}%` }} />
                     </div>
-                  )}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+                    <span className="w-10 text-right text-sm">{count}</span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
+    </CardContent>
+  </Card>
+</TabsContent>
+
 
         {!tableExists && (
           <TabsContent value="create-table">

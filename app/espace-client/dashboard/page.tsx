@@ -17,8 +17,9 @@ import {
 import { getClientDocuments } from "@/app/actions/documents"
 
 export default async function DashboardPage() {
-  const cookieStore = cookies()
-  const session = await getClientSession(cookieStore)
+  const cookieStore = await cookies()      // ← async
+const session     = await getClientSession(cookieStore)
+
 
   if (!session) return null // le layout gère la redirection
 

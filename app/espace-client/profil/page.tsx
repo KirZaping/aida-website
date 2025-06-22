@@ -9,7 +9,7 @@ import { ProfileSection } from "./components/ProfileSection"
 import { CollaboratorsSection } from "./components/CollaboratorsSection"
 
 export default async function ProfilePage() {
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   const session = await getClientSession(cookieStore)
 
   if (!session) {

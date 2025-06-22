@@ -10,6 +10,7 @@ async function fetchAllDevis() {
   try {
     const { data, error } = await supabaseAdmin.from("devis").select("*").order("date_creation", { ascending: false })
 
+
     if (error) {
       console.error("Erreur lors de la récupération des devis:", error)
       throw new Error(error.message)
@@ -20,6 +21,8 @@ async function fetchAllDevis() {
     console.error("Exception lors de la récupération des devis:", error)
     return []
   }
+
+  
 }
 
 export default async function DevisPage() {

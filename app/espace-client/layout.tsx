@@ -11,21 +11,25 @@ export default async function EspaceClientLayout({
 }: {
   children: React.ReactNode
 }) {
-  // Vérifier si l'utilisateur est connecté
-  const cookieStore = cookies()
+  /* Cookies → toujours async désormais */
+  const cookieStore   = await cookies()
   const clientSession = await getClientSession(cookieStore)
-  const pathname = new URL(cookies().get("next-url")?.value || "/", "http://localhost").pathname
 
-  // Si on est sur la page de login ou logout, afficher simplement le contenu sans layout
+  /* On lit le cookie next-url (s’il existe) pour connaître la page courante */
+  const pathname = new URL(
+    cookieStore.get("next-url")?.value || "/",
+    "http://localhost",
+  ).pathname
+
+  /* Pages login/logout : pas de layout */
   if (pathname.includes("/espace-client/login") || pathname.includes("/espace-client/logout")) {
     return <>{children}</>
   }
 
-  // Si l'utilisateur n'est pas connecté, ne pas afficher le layout
-  if (!clientSession) {
-    return <>{children}</>
-  }
+  /* Non connecté ? Pas de layout non plus */
+  if (!clientSession) return <>{children}</>
 
+  /* Layout complet */
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       {/* En-tête */}
@@ -35,63 +39,51 @@ export default async function EspaceClientLayout({
             <span className="text-xl font-bold text-primary">Espace Client</span>
           </Link>
           <div className="flex items-center space-x-4">
-            <span className="text-sm font-medium hidden md:inline-block">{clientSession.entreprise}</span>
+            <span className="text-sm font-medium hidden md:inline-block">
+              {clientSession.entreprise}
+            </span>
             <LogoutButton />
           </div>
         </div>
       </header>
 
-      {/* Contenu principal */}
+      {/* Corps */}
       <div className="flex flex-1">
-        {/* Barre latérale */}
+        {/* Sidebar */}
         <aside className="w-64 bg-white border-r border-gray-200 hidden md:block">
           <nav className="p-4 space-y-1">
-            <Link
-              href="/espace-client/dashboard"
-              className="flex items-center space-x-2 px-4 py-2 rounded-md hover:bg-gray-100 transition-colors"
-            >
-              <Home className="h-5 w-5 text-gray-500" />
-              <span>Tableau de bord</span>
-            </Link>
-
-            <Link
-              href="/espace-client/info-contrat"
-              className="flex items-center space-x-2 px-4 py-2 rounded-md hover:bg-gray-100 transition-colors"
-            >
-              <Building className="h-5 w-5 text-gray-500" />
-              <span>Projets</span>
-            </Link>
-
-            
-            <Link
-              href="/espace-client/documents"
-              className="flex items-center space-x-2 px-4 py-2 rounded-md hover:bg-gray-100 transition-colors"
-            >
-              <FileText className="h-5 w-5 text-gray-500" />
-              <span>Documents</span>
-            </Link>
-            <Link
-              href="/espace-client/profil"
-              className="flex items-center space-x-2 px-4 py-2 rounded-md hover:bg-gray-100 transition-colors"
-            >
-              <User className="h-5 w-5 text-gray-500" />
-              <span>Profil entreprise</span>
-            </Link>
-
-            
-            <Link
-              href="/espace-client/configuration"
-              className="flex items-center space-x-2 px-4 py-2 rounded-md hover:bg-gray-100 transition-colors"
-            >
-              <User className="h-5 w-5 text-gray-500" />
-              <span>Configuration</span>
-            </Link>
+            <NavItem href="/espace-client/dashboard" icon={Home} label="Tableau de bord" />
+            <NavItem href="/espace-client/info-contrat" icon={Building} label="Projets" />
+            <NavItem href="/espace-client/documents" icon={FileText} label="Documents" />
+            <NavItem href="/espace-client/profil" icon={User} label="Profil entreprise" />
+            <NavItem href="/espace-client/configuration" icon={User} label="Configuration" />
           </nav>
         </aside>
 
-        {/* Contenu principal */}
+        {/* Contenu */}
         <main className="flex-1 p-6">{children}</main>
       </div>
     </div>
+  )
+}
+
+/* Petit composant pour alléger le JSX */
+function NavItem({
+  href,
+  icon: Icon,
+  label,
+}: {
+  href: string
+  icon: React.ElementType
+  label: string
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex items-center space-x-2 px-4 py-2 rounded-md hover:bg-gray-100 transition-colors"
+    >
+      <Icon className="h-5 w-5 text-gray-500" />
+      <span>{label}</span>
+    </Link>
   )
 }

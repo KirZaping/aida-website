@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -12,9 +12,14 @@ import { Badge } from "@/components/ui/badge"
 import { Loader2, ArrowLeft, Edit, FileText, Folder, Mail, Phone, MapPin, Calendar } from "lucide-react"
 import { getClient, getClientDocuments, getClientProjects } from "../../actions/clients"
 import { formatDate } from "@/lib/utils"
+import { DocumentUploadDialog } from "../../components/document-upload-dialog"
+
 
 export default function ClientDetailPage({ params }: { params: { id: string } }) {
   const router = useRouter()
+    const { id } = useParams<{ id: string }>()              // ← récupère l’id
+
+
   const [loading, setLoading] = useState(true)
   const [client, setClient] = useState<any>(null)
   const [documents, setDocuments] = useState<any[]>([])
@@ -22,24 +27,25 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (!id) return                                       // attend que l’id soit disponible
     fetchClientData()
-  }, [params.id])
+  }, [id])
 
   const fetchClientData = async () => {
     try {
       setLoading(true)
       setError(null)
 
-      // Récupérer les informations du client
-      const clientResult = await getClient(params.id)
+const clientResult = await getClient(id)
       if (clientResult.error) {
         setError(clientResult.error)
         return
       }
       setClient(clientResult.client)
 
+
       // Récupérer les documents du client
-      const documentsResult = await getClientDocuments(params.id)
+      const documentsResult = await getClientDocuments(id)
       if (documentsResult.error) {
         console.error("Erreur lors de la récupération des documents:", documentsResult.error)
       } else {
@@ -47,7 +53,7 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
       }
 
       // Récupérer les projets du client
-      const projectsResult = await getClientProjects(params.id)
+      const projectsResult = await getClientProjects(id)
       if (projectsResult.error) {
         console.error("Erreur lors de la récupération des projets:", projectsResult.error)
       } else {
@@ -78,7 +84,7 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
           <AlertTitle>Erreur</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
-        <Button variant="outline" onClick={() => router.back()}>
+        <Button variant="outline"   onClick={() => router.push("/admin")}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Retour
         </Button>
@@ -116,7 +122,7 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
             {client.type === "client" ? "Client" : client.type === "prospect" ? "Prospect" : "Partenaire"}
           </Badge>
         </div>
-        <Button onClick={() => router.push(`/admin/clients/${params.id}/modifier`)}>
+        <Button onClick={() => router.push(`/admin/clients/${id}/modifier`)}>
           <Edit className="mr-2 h-4 w-4" />
           Modifier
         </Button>
@@ -149,7 +155,7 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
               <FileText className="mt-0.5 h-4 w-4 text-gray-500" />
               <div>
                 <p className="font-medium">Entreprise</p>
-                <p className="text-sm text-gray-500">{client.entreprise}</p>
+                <p className="text-sm text-gray-500">{client.nom_entreprise}</p>
               </div>
             </div>
             {(client.adresse || client.code_postal || client.ville) && (
@@ -216,9 +222,7 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
                     <FileText className="mb-2 h-8 w-8 text-gray-400" />
                     <h3 className="mb-1 text-lg font-medium">Aucun document</h3>
                     <p className="text-sm text-gray-500">Ce client n'a pas encore de documents.</p>
-                    <Button className="mt-4" asChild>
-                      <Link href="/admin/documents/ajouter">Ajouter un document</Link>
-                    </Button>
+                    <DocumentUploadDialog clientId={client.id} onUploaded={fetchClientData} />
                   </div>
                 ) : (
                   <div className="rounded-md border">
@@ -250,11 +254,11 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
                               <Badge
                                 variant={
                                   doc.statut === "payé" || doc.statut === "signé"
-                                    ? "default"
+                                    ? "paid"
                                     : doc.statut === "en_attente"
-                                      ? "secondary"
+                                      ? "waiting"
                                       : doc.statut === "refusé" || doc.statut === "expiré"
-                                        ? "destructive"
+                                        ? "refused"
                                         : "outline"
                                 }
                               >
