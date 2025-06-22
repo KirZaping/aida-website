@@ -3,50 +3,52 @@
 import { cookies } from "next/headers"
 import { supabaseAdmin } from "@/lib/supabase"
 
-// Type pour la session client
+// ──────────────────────────────────────────────────────────
+// Types
+// ──────────────────────────────────────────────────────────
 export type ClientSession = {
   id: string
   email: string
   entreprise: string
 }
 
-// Fonction pour se connecter
+// ──────────────────────────────────────────────────────────
+// Connexion
+// ──────────────────────────────────────────────────────────
 export async function loginClient(email: string, password: string) {
   try {
-    // Vérifier si la table clients existe
-    const { error: tableError } = await supabaseAdmin.from("clients").select("count").limit(1)
+    /* Vérifie que la table `clients` existe ─────────────────── */
+    const { error: tableError } = await supabaseAdmin
+      .from("clients")
+      .select("count")
+      .limit(1)
+    if (tableError)
+      return {
+        success: false,
+        error:
+          "La table clients n'existe pas. Veuillez exécuter le script d'initialisation.",
+      }
 
-    if (tableError) {
-      console.error("Erreur lors de la vérification de la table clients:", tableError)
-      return { success: false, error: "La table clients n'existe pas. Veuillez exécuter le script d'initialisation." }
-    }
-
-    // Authentification avec Supabase
+    /* Recherche de l’utilisateur ────────────────────────────── */
     const { data: client, error } = await supabaseAdmin
       .from("clients")
       .select("id, email, nom_entreprise, mot_de_passe")
       .eq("email", email)
       .single()
 
-    if (error || !client) {
-      console.error("Erreur lors de la recherche du client:", error)
+    if (error || !client || client.mot_de_passe !== password)
       return { success: false, error: "Identifiants incorrects" }
-    }
 
-    // Vérification du mot de passe
-    if (client.mot_de_passe !== password) {
-      return { success: false, error: "Identifiants incorrects" }
-    }
-
-    // Créer la session
+    /* Création de la session ───────────────────────────────── */
     const session: ClientSession = {
       id: client.id,
       email: client.email,
       entreprise: client.nom_entreprise || "Entreprise",
     }
 
-    // Stocker la session dans un cookie
-    cookies().set("client_session", JSON.stringify(session), {
+    /* Stockage dans le cookie (async !) ────────────────────── */
+    const cookieStore = await cookies()
+    cookieStore.set("client_session", JSON.stringify(session), {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       maxAge: 60 * 60 * 24 * 7, // 1 semaine
@@ -54,14 +56,19 @@ export async function loginClient(email: string, password: string) {
     })
 
     return { success: true }
-  } catch (error) {
-    console.error("Erreur de connexion:", error)
+  } catch {
     return { success: false, error: "Une erreur est survenue lors de la connexion" }
   }
 }
 
-// Fonction pour récupérer la session
-export async function getClientSession(cookieStore: ReturnType<typeof cookies>) {
+// ──────────────────────────────────────────────────────────
+// Lecture de session
+// ──────────────────────────────────────────────────────────
+export async function getClientSession(
+  cookieStore?: Awaited<ReturnType<typeof cookies>>,
+) {
+  if (!cookieStore) cookieStore = await cookies()
+
   const sessionCookie = cookieStore.get("client_session")
   if (!sessionCookie) return null
 
@@ -72,13 +79,15 @@ export async function getClientSession(cookieStore: ReturnType<typeof cookies>) 
   }
 }
 
-// Fonction pour se déconnecter
+// ──────────────────────────────────────────────────────────
+// Déconnexion
+// ──────────────────────────────────────────────────────────
 export async function logoutClient() {
   try {
-    cookies().delete("client_session")
+    const cookieStore = await cookies()
+    cookieStore.delete("client_session")
     return { success: true, redirectTo: "/" }
-  } catch (error) {
-    console.error("Erreur lors de la déconnexion:", error)
+  } catch {
     return { success: false, error: "Erreur lors de la déconnexion" }
   }
 }

@@ -16,7 +16,7 @@ export default async function ProjetDetailPage({
 }: {
   params: { id: string }
 }) {
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   const session = await getClientSession(cookieStore)
   if (!session) redirect("/espace-client/login")
 

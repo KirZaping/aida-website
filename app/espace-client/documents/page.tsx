@@ -5,8 +5,9 @@ import { getClientDocuments } from "@/app/actions/documents"
 import DocumentBrowser from "../components/document-browser"
 
 export default async function DocumentsPage() {
-  const cookieStore = cookies()
-  const session = await getClientSession(cookieStore)
+  const cookieStore = await cookies()      // ← async
+const session     = await getClientSession(cookieStore)
+
 
   // Le layout se charge de la redirection si la session est absente
   if (!session) return null

@@ -1,25 +1,28 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useParams } from "next/navigation"
 import { Loader2, ArrowLeft } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { getClient } from "../../../actions/clients"
 import ClientForm from "../../../components/client-form"
 
-export default function EditClientPage({ params }: { params: { id: string } }) {
+export default function EditClientPage() {
   const router = useRouter()
+  const { id } = useParams<{ id: string }>()              // ← id depuis l’URL
+
   const [client, setClient] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (!id) return                                      // attend que l’id soit prêt
     const fetchClient = async () => {
       try {
         setLoading(true)
         setError(null)
-        const result = await getClient(params.id)
+        const result = await getClient(id)
 
         if (result.error) {
           setError(result.error)
@@ -36,7 +39,7 @@ export default function EditClientPage({ params }: { params: { id: string } }) {
     }
 
     fetchClient()
-  }, [params.id])
+  }, [id])                                               // ← dépend de id
 
   if (loading) {
     return (
@@ -90,9 +93,9 @@ export default function EditClientPage({ params }: { params: { id: string } }) {
 
       <ClientForm
         initialData={client}
-        clientId={params.id}
-        onSuccess={(updatedClient) => {
-          router.push(`/admin/clients/${params.id}`)
+        clientId={id}
+        onSuccess={() => {
+          router.push(`/admin/clients/${id}`)
         }}
       />
     </div>

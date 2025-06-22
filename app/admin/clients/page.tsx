@@ -141,7 +141,7 @@ export default function ClientsPage() {
     // Générer des données de démonstration pour le mode développement
     return Array.from({ length: 10 }, (_, i) => ({
       id: `demo-${i + 1}`,
-      nom: `Dupont ${i + 1}`,
+      nom: `Dunt ${i + 1}`,
       prenom: `Jean ${i + 1}`,
       email: `client${i + 1}@example.com`,
       telephone: `0${Math.floor(Math.random() * 900000000) + 100000000}`,

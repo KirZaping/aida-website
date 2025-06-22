@@ -32,7 +32,7 @@ export default async function DocumentPage({
   params,
   searchParams = {},
 }: PageProps) {
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   const session = await getClientSession(cookieStore)
   if (!session) return null
 

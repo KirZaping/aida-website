@@ -1,10 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
 import { Check, Clock, Loader2, MoreHorizontal, RefreshCw, Search } from "lucide-react"
-import { supabaseAdmin } from "@/lib/supabase"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -26,22 +25,26 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { toast } from "@/components/ui/use-toast"
+import { updateDevisStatus } from "../actions/devis"
 
 interface DevisTableProps {
   devis: any[]
   demoMode?: boolean
-  onRefresh?: () => void
+  onRefresh?: () => Promise<void> | void
   loading?: boolean
 }
 
 export function DevisTable({ devis, demoMode = false, onRefresh, loading = false }: DevisTableProps) {
+  const [rows, setRows] = useState(devis)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedDevis, setSelectedDevis] = useState<any | null>(null)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [updatingStatus, setUpdatingStatus] = useState(false)
   const [isRefreshing, setIsRefreshing] = useState(false)
 
-  const filteredDevis = devis.filter(
+  useEffect(() => setRows(devis), [devis])
+
+  const filteredDevis = rows.filter(
     (d) =>
       d.nom?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       d.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -53,45 +56,25 @@ export function DevisTable({ devis, demoMode = false, onRefresh, loading = false
       setUpdatingStatus(true)
 
       if (demoMode) {
-        // En mode démo, simuler un changement de statut
-        setTimeout(() => {
-          toast({
-            title: "Mode démo",
-            description: "En mode démo, les changements ne sont pas persistants.",
-          })
-          if (onRefresh) onRefresh()
-        }, 1000)
+        toast({ title: "Mode démo", description: "Les changements ne sont pas persistants." })
         return
       }
 
-      // Mise à jour du statut dans Supabase
-      const { error } = await supabaseAdmin
-        .from("devis")
-        .update({
-          statut: newStatus,
-          date_modification: new Date().toISOString(),
-        })
-        .eq("id", id)
+      await updateDevisStatus(id, newStatus)
 
-      if (error) {
-        console.error("Erreur lors de la mise à jour du statut:", error)
-        toast({
-          title: "Erreur",
-          description: "Impossible de mettre à jour le statut du devis",
-          variant: "destructive",
-        })
+      toast({ title: "Succès", description: "Statut mis à jour" })
+
+      if (onRefresh) {
+        await onRefresh()
       } else {
-        toast({
-          title: "Succès",
-          description: "Le statut du devis a été mis à jour",
-        })
-        if (onRefresh) onRefresh()
+        setRows((r) => r.map((row) => (row.id === id ? { ...row, statut: newStatus } : row)))
       }
+
+      setSelectedDevis((prev) => (prev && prev.id === id ? { ...prev, statut: newStatus } : prev))
     } catch (err) {
-      console.error("Exception lors de la mise à jour du statut:", err)
       toast({
         title: "Erreur",
-        description: "Une erreur est survenue lors de la mise à jour",
+        description: err instanceof Error ? err.message : "Mise à jour impossible",
         variant: "destructive",
       })
     } finally {

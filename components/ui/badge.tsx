@@ -1,6 +1,6 @@
+// Badge.tsx
 import type * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
-
 import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
@@ -12,6 +12,16 @@ const badgeVariants = cva(
         secondary: "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
         destructive: "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
         outline: "text-foreground",
+        waiting: "border-transparent bg-yellow-100 text-yellow-800",
+        paid: "border-transparent bg-green-100 text-green-800",
+        signed: "border-transparent bg-blue-100 text-blue-800",
+        refused: "border-transparent bg-red-100 text-red-800",
+        expired: "border-transparent bg-gray-100 text-gray-800",
+        draft: "border-transparent bg-neutral-100 text-neutral-800",
+        invoice: "border-transparent bg-purple-100 text-purple-800",
+        quote: "border-transparent bg-cyan-100 text-cyan-800",
+        contract: "border-transparent bg-indigo-100 text-indigo-800",
+        other: "border-transparent bg-slate-100 text-slate-800",
       },
     },
     defaultVariants: {
