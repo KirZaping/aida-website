@@ -54,7 +54,6 @@ export default function DocumentBrowser({ documents, error }: Props) {
 
   /* ---------------- Filtrage documents --------------------- */
   const processedDocs = useMemo(() => {
-    // 1. recherche texte
     const q = query.trim().toLowerCase()
     let arr = !q
       ? documents
@@ -65,7 +64,6 @@ export default function DocumentBrowser({ documents, error }: Props) {
           new Date(d.date_creation).toLocaleDateString("fr-FR").includes(q),
         )
 
-    // 2. filtre statut (si au moins un statut sélectionné)
     if (selectedStatuses.length > 0) {
       arr = arr.filter((d) => selectedStatuses.includes(d.statut))
     }

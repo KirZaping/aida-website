@@ -41,8 +41,6 @@ export function CollaboratorsSection({ collaborators, clientId }: Props) {
       const res = await deleteCollaborator(id)
       if (res.success) {
         setList(l => l.filter(c => c.id !== id))
-      } else {
-        // ici : afficher une erreur (toast, banner…)
       }
       setDeletingId(null)
     })

@@ -40,7 +40,6 @@ export function ShareDocumentForm({ documentId, documentTitle, shareUrl }: Share
     setIsLoading(true)
 
     try {
-      // Simuler l'envoi d'email (à remplacer par un appel API réel)
       await new Promise((resolve) => setTimeout(resolve, 1000))
 
       toast({

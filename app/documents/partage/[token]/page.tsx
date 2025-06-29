@@ -8,13 +8,11 @@ import { supabaseAdmin } from "@/lib/supabase"
 
 async function getSharedDocument(token: string) {
   try {
-    // Vérifier si la table document_partages existe
     const { error: tableError } = await supabaseAdmin.from("document_partages").select("id").limit(1)
 
     if (tableError) {
       console.error("Erreur de vérification de la table document_partages:", tableError)
 
-      // Mode démo - retourner un document fictif
       return {
         document: {
           id: "1",
@@ -31,7 +29,6 @@ async function getSharedDocument(token: string) {
       }
     }
 
-    // Récupérer le partage
     const { data: partage, error: partageError } = await supabaseAdmin
       .from("document_partages")
       .select("*")
@@ -43,12 +40,10 @@ async function getSharedDocument(token: string) {
       return { document: null, error: "Lien de partage invalide ou expiré" }
     }
 
-    // Vérifier si le partage a expiré
     if (new Date(partage.date_expiration) < new Date()) {
       return { document: null, error: "Ce lien de partage a expiré" }
     }
 
-    // Récupérer le document
     const { data: document, error: documentError } = await supabaseAdmin
       .from("documents")
       .select("*")
@@ -60,7 +55,6 @@ async function getSharedDocument(token: string) {
       return { document: null, error: "Document non trouvé" }
     }
 
-    // Marquer le partage comme consulté
     if (!partage.est_consulte) {
       await supabaseAdmin
         .from("document_partages")
@@ -85,7 +79,6 @@ export default async function SharedDocumentPage({ params }: { params: { token: 
     notFound()
   }
 
-  // Fonction pour formater le type de document
   const formatType = (type: string) => {
     switch (type) {
       case "facture":

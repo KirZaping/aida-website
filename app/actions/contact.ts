@@ -5,13 +5,11 @@ import { revalidatePath } from "next/cache"
 
 export async function envoyerMessage(formData: FormData) {
   try {
-    // Récupérer les données du formulaire
     const nom = formData.get("nom") as string
     const email = formData.get("email") as string
     const sujet = formData.get("sujet") as string
     const message = formData.get("message") as string
 
-    // Validation basique
     if (!nom || !email || !sujet || !message) {
       return {
         success: false,
@@ -41,7 +39,6 @@ export async function envoyerMessage(formData: FormData) {
       }
     }
 
-    // Réussite
     revalidatePath("/")
     return {
       success: true,

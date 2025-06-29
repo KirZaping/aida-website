@@ -74,12 +74,11 @@ export default function AdminDashboard() {
       if (devisError) {
         console.error("Erreur lors de la récupération des devis:", devisError)
 
-        // Vérifier si l'erreur est due à une table inexistante
         if (devisError.message && devisError.message.includes("does not exist")) {
           setTableExists(false)
           setError("La table 'devis' n'existe pas dans la base de données.")
 
-          // Utiliser des données de démonstration
+          // Utiliser des données de démo
           const demoData = generateDemoData()
           setDevisList(demoData)
           calculateStats(demoData, [], [])

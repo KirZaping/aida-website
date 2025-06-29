@@ -3,6 +3,9 @@
 import { supabaseAdmin } from "@/lib/supabase"
 import { revalidatePath } from "next/cache"
 
+import bcrypt from "bcryptjs"
+
+
 export async function getClient(id: string) {
   try {
     const { data, error } = await supabaseAdmin.from("clients").select("*").eq("id", id).single()
@@ -31,40 +34,47 @@ export async function addClient(clientData: {
   pays?: string
   notes?: string
   type: "client" | "prospect" | "partenaire"
-  mot_de_passe?: string
+  mot_de_passe?: string                 // mot de passe en clair (formulaire)
 }) {
   try {
-    // Vérifier si l'email existe déjà
-    const { data: existingClient, error: checkError } = await supabaseAdmin
+    /* --------- email déjà utilisé ? ------------------------------------ */
+    const { data: existing, error: checkErr } = await supabaseAdmin
       .from("clients")
       .select("id")
       .eq("email", clientData.email)
       .maybeSingle()
 
-    if (checkError) {
-      console.error("Erreur lors de la vérification de l'email:", checkError)
-      return { error: checkError.message }
+    if (checkErr) return { error: checkErr.message }
+    if (existing)  return { error: "Un client avec cet email existe déjà." }
+
+    /* --------- hash du mot de passe ------------------------------------ */
+    let hashed = ""
+    if (clientData.mot_de_passe) {
+      // 12 rounds → bon compromis sécurité <-> perf
+      hashed = await bcrypt.hash(clientData.mot_de_passe, 12)
     }
 
-    if (existingClient) {
-      return { error: "Un client avec cet email existe déjà." }
-    }
+    /* --------- insertion ------------------------------------------------ */
+    const { data, error } = await supabaseAdmin
+      .from("clients")
+      .insert([
+        {
+          ...clientData,
+          mot_de_passe: hashed,          // on stocke uniquement le hash
+        },
+      ])
+      .select()
 
-    // Ajouter le client
-    const { data, error } = await supabaseAdmin.from("clients").insert([clientData]).select()
-
-    if (error) {
-      console.error("Erreur lors de l'ajout du client:", error)
-      return { error: error.message }
-    }
+    if (error) return { error: error.message }
 
     revalidatePath("/admin/clients")
     return { success: true, client: data[0] }
-  } catch (error) {
-    console.error("Exception lors de l'ajout du client:", error)
+  } catch (err) {
+    console.error("Exception lors de l'ajout du client:", err)
     return { error: "Une erreur est survenue lors de l'ajout du client." }
   }
 }
+
 
 export async function updateClient(
   id: string,

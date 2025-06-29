@@ -10,7 +10,6 @@ export default function LogoutPage() {
     // Fonction pour effectuer la déconnexion
     async function performLogout() {
       try {
-        // Appeler la route de déconnexion
         const response = await fetch("/espace-client/logout", {
           method: "POST",
           headers: {
@@ -18,16 +17,13 @@ export default function LogoutPage() {
           },
         })
 
-        // Rediriger vers la page d'accueil
         router.push("/")
       } catch (error) {
         console.error("Erreur lors de la déconnexion:", error)
-        // En cas d'erreur, rediriger quand même vers la page d'accueil
         router.push("/")
       }
     }
 
-    // Exécuter la déconnexion
     performLogout()
   }, [router])
 

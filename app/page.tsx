@@ -252,6 +252,9 @@ export default function Home() {
                       onMouseLeave={leaveButton}
                     >
                       <span className="relative z-10">Découvrir nos services</span>
+
+
+                      
                       <motion.div
                         className="absolute inset-0 rounded-md overflow-hidden"
                         initial={{ scale: 0, opacity: 0 }}
@@ -261,6 +264,11 @@ export default function Home() {
                         <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-blue-800 opacity-90" />
                         <div className="h-full w-full bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxkZWZzPjxwYXR0ZXJuIGlkPSJwYXR0ZXJuIiB4PSIwIiB5PSIwIiB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHBhdHRlcm5Vbml0cz0idXNlclNwYWNlT25Vc2UiIHBhdHRlcm5UcmFuc2Zvcm09InJvdGF0ZSg0NSkiPjxyZWN0IHg9IjAiIHk9IjAiIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjA1KSI+PC9yZWN0PjwvcGF0dGVybj48L2RlZnM+PHJlY3QgeD0iMCIgeT0iMCIgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNwYXR0ZXJuKSI+PC9yZWN0Pjwvc3ZnPg==')]" />
                       </motion.div>
+
+
+
+
+
                       <ChevronRight className="ml-2 h-4 w-4 relative z-10" />
                     </Button>
                   </Link>

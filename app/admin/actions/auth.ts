@@ -3,67 +3,59 @@
 import { cookies } from "next/headers"
 import { supabaseAdmin } from "@/lib/supabase"
 
+import bcrypt from "bcryptjs"
+
+
 export async function loginAdmin(formData: FormData) {
   const username = formData.get("username") as string
   const password = formData.get("password") as string
-
-  if (!username || !password) {
-    return { success: false, error: "Veuillez fournir un nom d'utilisateur et un mot de passe" }
-  }
+  if (!username || !password)
+    return { success: false, error: "Nom d'utilisateur ou mot de passe manquant" }
 
   try {
-    console.log(`Tentative de connexion pour l'utilisateur: ${username}`)
-
-    // Vérifier les identifiants dans la table admin_users
-    const { data, error } = await supabaseAdmin
+    /* ── 1· récupérer l’admin (le mot de passe stocké est déjà un hash bcrypt) */
+    const { data: admin, error } = await supabaseAdmin
       .from("admin_users")
-      .select("id, username, role")
+      .select("id, username, role, password")      // la colonne contient désormais le hash
       .eq("username", username)
-      .eq("password", password)
       .single()
 
-    if (error) {
-      console.error("Erreur lors de la vérification des identifiants:", error)
-      return { success: false, error: "Erreur lors de la vérification des identifiants" }
+    if (error || !admin) return { success: false, error: "Identifiants incorrects" }
+
+    /* ── 2· comparer le mot de passe avec bcrypt ------------------------- */
+    const ok = await bcrypt.compare(password, admin.password)
+    if (!ok) return { success: false, error: "Identifiants incorrects" }
+
+    /* ── 3· mettre à jour last_login ------------------------------------ */
+    await supabaseAdmin
+      .from("admin_users")
+      .update({ last_login: new Date().toISOString() })
+      .eq("id", admin.id)
+
+    /* ── 4· créer le cookie de session sécurisée ------------------------ */
+    const expires = new Date(Date.now() + 1000 * 60 * 60 * 24) // 24 h
+    const session: AdminSession = {
+      id: admin.id,
+      username: admin.username,
+      role: admin.role,
+      expires: expires.toISOString(),
     }
 
-    if (!data) {
-      console.log("Identifiants incorrects")
-      return { success: false, error: "Identifiants incorrects" }
-    }
+    cookies().set("admin_session", JSON.stringify(session), {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/",
+      expires,
+    })
 
-    // Mettre à jour la date de dernière connexion
-    await supabaseAdmin.from("admin_users").update({ last_login: new Date().toISOString() }).eq("id", data.id)
-
-    // Créer une session sécurisée avec un cookie
-    const sessionExpiry = new Date()
-    sessionExpiry.setHours(sessionExpiry.getHours() + 24) // Session de 24 heures
-
-    // Stocker les informations de session dans un cookie
-    cookies().set(
-      "admin_session",
-      JSON.stringify({
-        id: data.id,
-        username: data.username,
-        role: data.role,
-        expires: sessionExpiry.toISOString(),
-      }),
-      {
-        expires: sessionExpiry,
-        httpOnly: true,
-        path: "/",
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-      },
-    )
-
-    console.log(`Connexion réussie pour l'utilisateur: ${username}`)
-    return { success: true, user: { username: data.username, role: data.role } }
-  } catch (err) {
-    console.error("Exception lors de la connexion:", err)
+    return { success: true, user: { username: admin.username, role: admin.role } }
+  } catch (e) {
+    console.error("Erreur login admin :", e)
     return { success: false, error: "Une erreur est survenue lors de la connexion" }
   }
 }
+
 
 export async function logoutAdmin() {
   cookies().delete("admin_session")

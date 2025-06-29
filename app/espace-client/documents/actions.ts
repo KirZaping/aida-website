@@ -4,13 +4,11 @@ import { siteConfig } from "@/lib/config"
 import { createServerClient } from "@/lib/supabase"
 import { cookies } from "next/headers"
 
-// Générer un lien de partage pour un document
 export async function generateShareLink(documentId: string) {
   const cookieStore = cookies()
   const supabase = createServerClient(cookieStore)
 
   try {
-    // Générer un token unique pour le partage
     const { data, error } = await supabase
       .from("document_shares")
       .insert({
@@ -22,7 +20,6 @@ export async function generateShareLink(documentId: string) {
 
     if (error) throw error
 
-    // Créer l'URL de partage avec le domaine du site
     const shareUrl = `${siteConfig.url}/documents/share/${data.token}`
 
     return { success: true, url: shareUrl }
@@ -32,13 +29,11 @@ export async function generateShareLink(documentId: string) {
   }
 }
 
-// Vérifier si un document est partageable
 export async function isDocumentShareable(documentId: string) {
   const cookieStore = cookies()
   const supabase = createServerClient(cookieStore)
 
   try {
-    // Vérifier si le document existe et appartient au client connecté
     const { data: session } = await supabase.auth.getSession()
 
     if (!session.session?.user?.id) {

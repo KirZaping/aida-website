@@ -8,11 +8,9 @@ import {
   Card, CardHeader, CardTitle, CardDescription, CardContent,
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import MessagesBanner from "../components/message-banner"   // ← nouveau composant client
+import MessagesBanner from "../components/message-banner"
 
-/* ────────────────────────────────────────────────────────── */
-/*  Server Action                                            */
-/* ────────────────────────────────────────────────────────── */
+
 async function inviteCollaborator(formData: FormData) {
   "use server"
 
@@ -22,7 +20,6 @@ async function inviteCollaborator(formData: FormData) {
   const session = await getClientSession()
   if (!session) redirect("/espace-client/login")
 
-  /* Insertion en base */
   const { error: insertErr } = await supabaseAdmin.from("collaborateurs").insert({
     client_id: session.id,
     email,
@@ -32,7 +29,6 @@ async function inviteCollaborator(formData: FormData) {
     redirect("/espace-client/configuration?err=db")
   }
 
-  /* Invitation Auth (envoi d’e-mail) */
   const { error: inviteErr } =
     await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
       data: { client_id: session.id },
@@ -45,9 +41,7 @@ async function inviteCollaborator(formData: FormData) {
   redirect("/espace-client/configuration?success=1")
 }
 
-/* ────────────────────────────────────────────────────────── */
-/*  Page                                                     */
-/* ────────────────────────────────────────────────────────── */
+
 export default async function ConfigurationPage() {
   const session = await getClientSession()
   if (!session) redirect("/espace-client/login")
@@ -64,10 +58,8 @@ export default async function ConfigurationPage() {
         </div>
       </div>
 
-      {/* Messages “flash” (client component) */}
       <MessagesBanner />
 
-      {/* Formulaire d’invitation */}
       <Card>
         <CardHeader>
           <CardTitle>Ajouter un collaborateur</CardTitle>

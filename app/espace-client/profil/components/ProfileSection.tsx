@@ -86,7 +86,7 @@ export function ProfileSection({ profile, clientId }: Props) {
         prenom: formData.prenom,
       })
       setIsEditing(false)
-            router.refresh()  // ← recharge la page avec les nouvelles données
+            router.refresh()
 
     })
   }
