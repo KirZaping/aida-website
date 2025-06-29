@@ -40,10 +40,6 @@ export function AdminHeader() {
               <User className="mr-1 inline-block h-4 w-4" />
               Clients
             </Link>
-            <Link href="/admin/settings" className="text-sm font-medium hover:underline">
-              <Settings className="mr-1 inline-block h-4 w-4" />
-              Paramètres
-            </Link>
           </nav>
         </div>
         <div className="flex items-center gap-4">
