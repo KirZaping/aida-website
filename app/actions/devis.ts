@@ -5,7 +5,6 @@ import { revalidatePath } from "next/cache"
 
 export async function soumettreDevis(formData: FormData) {
   try {
-    // Récupérer les données du formulaire
     const nom = formData.get("nom") as string
     const email = formData.get("email") as string
     const telephone = formData.get("telephone") as string
@@ -14,10 +13,8 @@ export async function soumettreDevis(formData: FormData) {
     const delai = formData.get("delai") as string
     const description = formData.get("description") as string
 
-    // Récupérer les services (cases à cocher)
     const servicesFormData = formData.getAll("services") as string[]
 
-    // Validation basique
     if (!nom || !email || !budget || !description || servicesFormData.length === 0) {
       return {
         success: false,
@@ -25,7 +22,6 @@ export async function soumettreDevis(formData: FormData) {
       }
     }
 
-    // Vérifier la connexion à Supabase
     if (!supabaseAdmin) {
       console.error("Client Supabase non disponible")
       return {
@@ -34,7 +30,6 @@ export async function soumettreDevis(formData: FormData) {
       }
     }
 
-    // Préparer les données pour l'insertion
     const devisData = {
       nom,
       email,
@@ -52,7 +47,6 @@ export async function soumettreDevis(formData: FormData) {
     console.log("Données à insérer:", JSON.stringify(devisData, null, 2))
 
     try {
-      // Insérer les données dans la table devis
       const { data, error } = await supabaseAdmin.from("devis").insert([devisData]).select()
 
       if (error) {
@@ -67,7 +61,6 @@ export async function soumettreDevis(formData: FormData) {
         }
       }
 
-      // Réussite
       console.log("Devis inséré avec succès:", data)
       revalidatePath("/devis")
       return {
@@ -83,7 +76,6 @@ export async function soumettreDevis(formData: FormData) {
       }
     }
   } catch (error: any) {
-    // Amélioration de la capture d'erreur
     const errorMessage = error instanceof Error ? error.message : "Erreur inconnue"
     console.error("Erreur lors de la soumission du devis:", error)
     console.error("Message d'erreur:", errorMessage)

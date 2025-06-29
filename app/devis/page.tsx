@@ -17,8 +17,6 @@ import { PenTool, ArrowLeft, ArrowRight, Check, Send, AlertCircle, Info } from "
 import { soumettreDevis } from "@/app/actions/devis"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
-// Ajouter l'import pour localStorage
-// import { useEffect } from "react"; // Removed duplicate import
 
 export default function DevisPage() {
   const searchParams = useSearchParams()
@@ -40,7 +38,6 @@ export default function DevisPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [devMode, setDevMode] = useState(false)
 
-  // Si le paramètre success est présent, afficher l'étape de confirmation
   useEffect(() => {
     if (success === "true") {
       setStep(5)
@@ -117,7 +114,6 @@ export default function DevisPage() {
     nextStep()
   }
 
-  // Remplacer la fonction submitFinalForm par cette version améliorée
   const submitFinalForm = async () => {
     try {
       setIsSubmitting(true)
@@ -125,7 +121,6 @@ export default function DevisPage() {
       setWarning(null)
       setDevMode(false)
 
-      // Créer un FormData avec toutes les données du formulaire
       const formDataToSubmit = new FormData()
       formDataToSubmit.append("nom", formData.nom)
       formDataToSubmit.append("email", formData.email)
@@ -135,7 +130,6 @@ export default function DevisPage() {
       formDataToSubmit.append("delai", formData.delai || "")
       formDataToSubmit.append("description", formData.description)
 
-      // Ajouter les services
       formData.services.forEach((service) => {
         formDataToSubmit.append("services", service)
       })
@@ -143,19 +137,16 @@ export default function DevisPage() {
       console.log("Envoi du formulaire...")
 
       try {
-        // Soumettre le formulaire via Server Action
         const result = await soumettreDevis(formDataToSubmit)
         console.log("Résultat de la soumission:", result)
 
         if (result.success) {
-          // Vérifier si nous sommes en mode développement
           if (result.devMode) {
             setDevMode(true)
             setWarning(
               result.devMessage || "Mode développement: Les données ne sont pas enregistrées en base de données.",
             )
 
-            // Stocker les données dans localStorage pour le mode développement
             if (result.data) {
               try {
                 const localData = {
@@ -164,11 +155,9 @@ export default function DevisPage() {
                   date_creation: new Date().toISOString(),
                 }
 
-                // Récupérer les demandes existantes
                 const existingDevis = JSON.parse(localStorage.getItem("localDevis") || "[]")
                 existingDevis.push(localData)
 
-                // Sauvegarder dans localStorage
                 localStorage.setItem("localDevis", JSON.stringify(existingDevis))
                 console.log("Données stockées localement:", localData)
               } catch (storageError) {
@@ -177,7 +166,6 @@ export default function DevisPage() {
             }
           }
 
-          // Passer à l'étape de succès
           setStep(5)
         } else {
           setError(result.message || "Une erreur est survenue lors de l'envoi de votre demande.")
@@ -185,7 +173,6 @@ export default function DevisPage() {
       } catch (submitError) {
         console.error("Erreur lors de la soumission:", submitError)
 
-        // Tenter de stocker localement en cas d'erreur
         try {
           const localData = {
             nom: formData.nom,
@@ -201,11 +188,9 @@ export default function DevisPage() {
             error_backup: true,
           }
 
-          // Récupérer les demandes existantes
           const existingDevis = JSON.parse(localStorage.getItem("localDevis") || "[]")
           existingDevis.push(localData)
 
-          // Sauvegarder dans localStorage
           localStorage.setItem("localDevis", JSON.stringify(existingDevis))
 
           setDevMode(true)
@@ -225,7 +210,6 @@ export default function DevisPage() {
     } catch (error) {
       console.error("Exception lors de la soumission du devis:", error)
 
-      // Tenter de stocker localement en cas d'erreur
       try {
         const localData = {
           nom: formData.nom,
@@ -241,11 +225,9 @@ export default function DevisPage() {
           error_backup: true,
         }
 
-        // Récupérer les demandes existantes
         const existingDevis = JSON.parse(localStorage.getItem("localDevis") || "[]")
         existingDevis.push(localData)
 
-        // Sauvegarder dans localStorage
         localStorage.setItem("localDevis", JSON.stringify(existingDevis))
 
         setDevMode(true)
@@ -266,7 +248,6 @@ export default function DevisPage() {
     }
   }
 
-  // Ajouter cette fonction pour récupérer les demandes locales
   const getLocalDevis = () => {
     if (typeof window === "undefined") return []
     try {
@@ -284,7 +265,6 @@ export default function DevisPage() {
 
   return (
     <div className="flex min-h-screen flex-col">
-      {/* Header */}
       <motion.header
         initial={{ y: -100 }}
         animate={{ y: 0 }}
@@ -331,7 +311,6 @@ export default function DevisPage() {
             </p>
           </motion.div>
 
-          {/* Progress Steps */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

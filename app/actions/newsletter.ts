@@ -5,10 +5,8 @@ import { revalidatePath } from "next/cache"
 
 export async function inscrireNewsletter(formData: FormData) {
   try {
-    // Récupérer l'email
     const email = formData.get("email") as string
 
-    // Validation basique
     if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
       return {
         success: false,
@@ -16,7 +14,6 @@ export async function inscrireNewsletter(formData: FormData) {
       }
     }
 
-    // Vérifier si l'email existe déjà
     const { data: existingEmail } = await supabaseAdmin.from("newsletter").select().eq("email", email).single()
 
     if (existingEmail) {
@@ -26,7 +23,6 @@ export async function inscrireNewsletter(formData: FormData) {
       }
     }
 
-    // Insérer dans la base de données
     const { data, error } = await supabaseAdmin
       .from("newsletter")
       .insert([
@@ -45,7 +41,6 @@ export async function inscrireNewsletter(formData: FormData) {
       }
     }
 
-    // Réussite
     revalidatePath("/blog")
     return {
       success: true,

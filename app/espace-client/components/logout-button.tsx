@@ -9,7 +9,6 @@ export function LogoutButton() {
 
   const handleLogout = async () => {
     try {
-      // Appeler la route de déconnexion
       await fetch("/espace-client/logout", {
         method: "POST",
         headers: {
@@ -17,11 +16,9 @@ export function LogoutButton() {
         },
       })
 
-      // Rediriger vers la page d'accueil
       router.push("/")
     } catch (error) {
       console.error("Erreur lors de la déconnexion:", error)
-      // En cas d'erreur, rediriger quand même vers la page d'accueil
       router.push("/")
     }
   }

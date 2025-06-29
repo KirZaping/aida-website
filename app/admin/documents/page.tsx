@@ -442,7 +442,6 @@ export default function DocumentsPage() {
       setLoading(true)
       setError(null)
 
-      // Récupérer tous les clients
       const { data: clientsData, error: clientsError } = await supabaseAdmin
         .from("clients")
         .select("id")
@@ -475,7 +474,6 @@ export default function DocumentsPage() {
 
       alert(`Initialisation terminée: ${successCount} dossiers créés, ${errorCount} erreurs`)
 
-      // Rafraîchir les données
       fetchDocuments()
     } catch (err) {
       setError(`Une erreur est survenue lors de l'initialisation des dossiers`)

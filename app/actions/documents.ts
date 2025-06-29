@@ -9,10 +9,7 @@ import { getClientSession } from "./client-auth"
 // Constantes
 // ────────────────────────────────────────────────────────────
 
-/** Nom du bucket où sont stockés les fichiers */
-const BUCKET = "client-documents" // ⬅️ changez si votre bucket a un autre nom
-
-/** Durée par défaut (en secondes) d’une URL signée : 60 s */
+const BUCKET = "client-documents"
 const SIGNED_URL_TTL = 60
 
 // ────────────────────────────────────────────────────────────
@@ -23,7 +20,6 @@ export async function getClientDocuments(clientId?: string) {
   try {
     const cookieStore = cookies()
 
-    // Pas d’ID fourni ? On regarde la session
     if (!clientId) {
       const session = await getClientSession(cookieStore)
       if (!session) return { documents: null, error: "Non authentifié" }
@@ -34,7 +30,6 @@ export async function getClientDocuments(clientId?: string) {
       return { documents: [], error: "ID client invalide" }
     }
 
-    // Vérifier que la table existe
     const { error: tableError } = await supabaseAdmin
       .from("documents")
       .select("count")
@@ -127,7 +122,7 @@ export async function getDocumentUrl(documentPath: string) {
 }
 
 // ────────────────────────────────────────────────────────────
-// Lien de partage (URL signée longue durée)
+// Lien de partage (URL signée longue durée) : KO
 // ────────────────────────────────────────────────────────────
 
 export async function createDocumentShareLink(
@@ -143,7 +138,6 @@ export async function createDocumentShareLink(
       return { url: null, error: "ID client invalide" }
     }
 
-    // Vérifier que la table existe
     const { error: tableError } = await supabaseAdmin
       .from("documents")
       .select("count")
@@ -156,7 +150,6 @@ export async function createDocumentShareLink(
       }
     }
 
-    // Vérifier l’appartenance
     const { data: doc, error: docErr } = await supabaseAdmin
       .from("documents")
       .select("fichier_path")
@@ -167,7 +160,6 @@ export async function createDocumentShareLink(
       return { url: null, error: "Document non trouvé ou accès non autorisé" }
     }
 
-    // On garde la logique de token (historique / tracking) via la table document_partages
     const { error: partTableErr } = await supabaseAdmin
       .from("document_partages")
       .select("count")
@@ -190,7 +182,6 @@ export async function createDocumentShareLink(
       date_expiration: expiration.toISOString(),
     })
 
-    // URL signée Supabase (directe)
     const pathInBucket = doc.fichier_path.replace(new RegExp(`^${BUCKET}/`), "")
     const expiresIn = expirationDays * 24 * 60 * 60
 
@@ -209,7 +200,7 @@ export async function createDocumentShareLink(
 }
 
 // ────────────────────────────────────────────────────────────
-// Marquer un document comme lu
+// Marquer un document comme lu : KO
 // ────────────────────────────────────────────────────────────
 
 export async function markDocumentAsRead(documentId: string) {
@@ -254,7 +245,7 @@ export async function markDocumentAsRead(documentId: string) {
 }
 
 // ────────────────────────────────────────────────────────────
-// Notifications non lues
+// Notifications non lues : KO
 // ────────────────────────────────────────────────────────────
 
 export async function getUnreadNotifications() {

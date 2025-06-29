@@ -4,12 +4,10 @@ import { supabaseAdmin } from "@/lib/supabase"
 // Fonction pour récupérer le profil d'un client
 export async function getClientProfile(clientId: string) {
   try {
-    // Vérifier si l'ID est valide
     if (!clientId || clientId.trim() === "") {
       return { profile: null, error: "ID client non valide" }
     }
 
-    // Récupérer le profil du client
     const { data, error } = await supabaseAdmin.from("clients").select("*").eq("id", clientId).single()
 
     if (error) {
@@ -27,22 +25,18 @@ export async function getClientProfile(clientId: string) {
 // Fonction pour récupérer les projets d'un client
 export async function getClientProjects(clientId: string) {
   try {
-    // Vérifier si l'ID est valide
     if (!clientId || clientId.trim() === "") {
       return { projects: [], error: "ID client non valide" }
     }
 
-    // Vérifier si la table projets existe
     const { error: tableError } = await supabaseAdmin.from("projets").select("id").limit(1)
 
     if (tableError) {
       console.error("Erreur de vérification de la table projets:", tableError)
 
-      // Si la table n'existe pas, retourner un tableau vide
       return { projects: [], error: "La table projets n'existe pas encore" }
     }
 
-    // Récupérer les projets du client
     const { data, error } = await supabaseAdmin
       .from("projets")
       .select("*")
@@ -64,18 +58,15 @@ export async function getClientProjects(clientId: string) {
 // Fonction pour récupérer les factures d'un client
 export async function getClientInvoices(clientId: string) {
   try {
-    // Vérifier si l'ID est valide
     if (!clientId || clientId.trim() === "") {
       return { invoices: [], error: "ID client non valide" }
     }
 
-    // Vérifier si la table documents existe
     const { error: tableError } = await supabaseAdmin.from("documents").select("id").limit(1)
 
     if (tableError) {
       console.error("Erreur de vérification de la table documents:", tableError)
 
-      // Si la table n'existe pas, retourner un tableau vide
       return { invoices: [], error: "La table documents n'existe pas encore" }
     }
 
@@ -102,12 +93,10 @@ export async function getClientInvoices(clientId: string) {
 // Fonction pour mettre à jour le profil d'un client
 export async function updateClientProfile(clientId: string, profileData: any) {
   try {
-    // Vérifier si l'ID est valide
     if (!clientId || clientId.trim() === "") {
       return { success: false, error: "ID client non valide" }
     }
 
-    // Mettre à jour le profil du client
     const { error } = await supabaseAdmin.from("clients").update(profileData).eq("id", clientId)
 
     if (error) {
@@ -131,7 +120,6 @@ export async function getClientCollaborators(clientId: string) {
       return { collaborators: [], error: "ID client non valide" }
     }
 
-    // Vérifier que la table existe
     const { error: tableError } = await supabaseAdmin
       .from("collaborateurs")
       .select("id")
@@ -141,7 +129,6 @@ export async function getClientCollaborators(clientId: string) {
       return { collaborators: [], error: "La table collaborateurs n'existe pas" }
     }
 
-    // Récupérer les collaborateurs
     const { data, error } = await supabaseAdmin
       .from("collaborateurs")
       .select("id, client_id, email, date_invitation, statut_invitation")

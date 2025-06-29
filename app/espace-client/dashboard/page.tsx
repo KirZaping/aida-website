@@ -17,18 +17,16 @@ import {
 import { getClientDocuments } from "@/app/actions/documents"
 
 export default async function DashboardPage() {
-  const cookieStore = await cookies()      // ← async
+const cookieStore = await cookies()
 const session     = await getClientSession(cookieStore)
 
 
-  if (!session) return null // le layout gère la redirection
+  if (!session) return null
 
-  /* ---------------------- Fetch data ---------------------- */
   const { documents = [], error: documentsError } = await getClientDocuments(session.id)
   const { projects = [], error: projectsError }   = await getClientProjects(session.id)
   const { invoices = [], error: invoicesError }   = await getClientInvoices(session.id)
 
-  /* ----------------------- Stats -------------------------- */
   const recentDocuments      = documents.slice(0, 3)
   const documentsCount       = documents.length
   const projectsInProgress   = projects.filter(p => p.statut === "en_cours").length
@@ -47,9 +45,7 @@ const session     = await getClientSession(cookieStore)
         </p>
       </div>
 
-      {/* -------------------------------------------------- */}
-      {/* STAT CARDS (cliquables)                           */}
-      {/* -------------------------------------------------- */}
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {/* Documents */}
         <Link href="/espace-client/documents" className="block focus:outline-none">

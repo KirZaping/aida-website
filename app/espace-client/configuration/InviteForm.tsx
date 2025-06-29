@@ -4,11 +4,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 
-/**
- * InviteForm :
- * - client-side, car il utilise le hook useState
- * - Envoit un POST à /api/collaborateurs pour stocker l’e-mail du collaborateur
- */
+
 export default function InviteForm() {
   const [email, setEmail] = useState("")
   const [loading, setLoading] = useState(false)

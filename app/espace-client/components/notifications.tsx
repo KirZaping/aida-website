@@ -23,6 +23,7 @@ interface Notification {
   date_creation: string
 }
 
+// KO
 export function Notifications() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -30,7 +31,6 @@ export function Notifications() {
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
-        // Simuler un appel API pour récupérer les notifications
         await new Promise((resolve) => setTimeout(resolve, 1000))
 
         // En mode démo, utiliser des données fictives
@@ -80,7 +80,6 @@ export function Notifications() {
   }
 
   const markAsRead = async (id: string) => {
-    // Simuler un appel API pour marquer la notification comme lue
     setNotifications(notifications.filter((notif) => notif.id !== id))
   }
 

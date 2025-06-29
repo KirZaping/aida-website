@@ -36,7 +36,6 @@ export default async function DocumentPage({
   const session = await getClientSession(cookieStore)
   if (!session) return null
 
-  // Récupérer et marquer lu
   const { document, error } = await getDocument(params.id)
   await markDocumentAsRead(params.id)
 
@@ -44,17 +43,14 @@ export default async function DocumentPage({
     notFound()
   }
 
-  // Générer l'URL signée pour affichage
   const documentUrl = document.fichier_path
     ? await getDocumentUrl(document.fichier_path)
     : null
 
-  // Si on a demandé le téléchargement, on redirige vers le document brut
   if (searchParams.download === "true" && documentUrl) {
     return redirect(documentUrl)
   }
 
-  // Générer le lien de partage (valide 7 jours)
   const { url: shareUrl, error: shareError } =
     await createDocumentShareLink(params.id, 7)
 
@@ -232,7 +228,7 @@ export default async function DocumentPage({
             <CardHeader>
               <CardTitle>Partage</CardTitle>
               <CardDescription>
-                Copiez le lien ci-dessous pour partager ce document (valable 7 jours)
+                Copiez le lien ci-dessous pour partager ce document
               </CardDescription>
             </CardHeader>
             <CardContent>

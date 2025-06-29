@@ -20,7 +20,6 @@ export default async function ProjetDetailPage({
   const session = await getClientSession(cookieStore)
   if (!session) redirect("/espace-client/login")
 
-  /* ----- Récupération du projet ----- */
   const { data: projet, error } = await supabaseAdmin
     .from("projets")
     .select(`
@@ -28,7 +27,7 @@ export default async function ProjetDetailPage({
       date_debut, date_fin, date_creation
     `)
     .eq("id", params.id)
-    .eq("client_id", session.id) // sécurité : le projet doit appartenir au client
+    .eq("client_id", session.id)
     .single()
 
   if (error || !projet) notFound()

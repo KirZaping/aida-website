@@ -41,7 +41,7 @@ export default function ClientsPage() {
     email: "",
     telephone: "",
     nom_entreprise: "",
-    mot_de_passe: "password123", // Mot de passe par défaut
+    mot_de_passe: "password123", // default
   })
 
   useEffect(() => {

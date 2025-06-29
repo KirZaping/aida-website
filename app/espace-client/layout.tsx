@@ -11,11 +11,9 @@ export default async function EspaceClientLayout({
 }: {
   children: React.ReactNode
 }) {
-  /* Cookies → toujours async désormais */
   const cookieStore   = await cookies()
   const clientSession = await getClientSession(cookieStore)
 
-  /* On lit le cookie next-url (s’il existe) pour connaître la page courante */
   const pathname = new URL(
     cookieStore.get("next-url")?.value || "/",
     "http://localhost",
@@ -67,7 +65,6 @@ export default async function EspaceClientLayout({
   )
 }
 
-/* Petit composant pour alléger le JSX */
 function NavItem({
   href,
   icon: Icon,
